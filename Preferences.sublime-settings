@@ -1,0 +1,9 @@
+{
+	"color_scheme": "Packages/Materialize/schemes/Material One Dark.tmTheme",
+	"ignored_packages":
+	[
+		"Vintage",
+	],
+	"theme": "Material One Dark.sublime-theme",
+	"font_size": 20,
+}

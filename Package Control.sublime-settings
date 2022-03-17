@@ -1,0 +1,24 @@
+{
+	"bootstrapped": true,
+	"in_process_packages":
+	[
+	],
+	"installed_packages":
+	[
+		"CSV Record View",
+		"HTML5",
+		"HTMLBeautify",
+		"IPython Notebook",
+		"JSON Stringify",
+		"Markdown HTML Preview",
+		"Materialize",
+		"One Dark Material - Theme",
+		"Package Control",
+		"Pretty JSON",
+		"PyYapf Python Formatter",
+		"Racket",
+		"Scheme",
+		"sql-formatter",
+		"SqlBeautifier",
+	],
+}
