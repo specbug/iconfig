@@ -1,0 +1,11 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+
+# Ignore bloat
+*
+
+# Keep
+!.gitignore
+!Preferences.sublime-settings
+!Package Control.sublime-settings
