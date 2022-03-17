@@ -4,6 +4,14 @@
 	[
 		"Vintage",
 	],
-	"theme": "Material One Dark.sublime-theme",
-	"font_size": 20,
+	"theme": "OneDarkMaterial.sublime-theme",
+	"font_size": 19,
+	"font_face": "JetBrains Mono",
+	"line_height": 1.2,
+	"line_padding_bottom": 1,
+	"line_padding_top": 0,
+	"highlight_line": false,
+	"show_tab_close_buttons": true,
+	"fold_buttons": true,
+	"file_tab_style": "square",
 }
