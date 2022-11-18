@@ -5,7 +5,7 @@
 
 # Ignore bloat
 *
-
+.idea
 # Keep
 !.gitignore
 !Preferences.sublime-settings
