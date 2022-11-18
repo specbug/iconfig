@@ -3,6 +3,9 @@
 /workspace.xml
 .DS_Store
 
+# package
+/packages
+
 # Ignore bloat
 *
 .idea
