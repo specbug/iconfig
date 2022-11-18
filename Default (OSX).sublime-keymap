@@ -1,0 +1,7 @@
+[
+	{ "keys": ["option+shift+up"], "command": "swap_line_up" },
+	{ "keys": ["option+shift+down"], "command": "swap_line_down" },
+	{ "keys": ["super+shift+d"], "command": "find_next" },
+	{ "keys": ["super+g"], "command": "find_under_expand" },
+	{ "keys": ["super+d"], "command": "duplicate_line" },
+]

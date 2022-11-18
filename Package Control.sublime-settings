@@ -5,7 +5,9 @@
 	],
 	"installed_packages":
 	[
+		"CSS Format",
 		"CSV Record View",
+		"HTML-CSS-JS Prettify",
 		"HTML5",
 		"HTMLBeautify",
 		"IPython Notebook",
@@ -17,8 +19,10 @@
 		"Pretty JSON",
 		"PyYapf Python Formatter",
 		"Racket",
+		"RemoveDuplicateLines",
 		"Scheme",
 		"sql-formatter",
 		"SqlBeautifier",
+		"YamlToJson",
 	],
 }
