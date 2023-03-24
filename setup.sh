@@ -4,7 +4,9 @@
 echo "Importing trackpad settings..."
 killall System\ Preferences
 rm ~/Library/Preferences/com.apple.driver.AppleHIDMouse.plist
+rm ~/Library/Preferences/com.apple.AppleMultitouchTrackpad.plist
 cp ./com.apple.driver.AppleHIDMouse.plist ~/Library/Preferences/
+cp ./com.apple.AppleMultitouchTrackpad.plist ~/Library/Preferences/
 
 # Download and install JetBrains Mono font family
 # Requirements to install fonts
