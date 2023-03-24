@@ -1,1 +1,1 @@
-defaults export com.apple.driver.AppleBluetoothMultitouch.trackpad ./TrackpadSettings.plist
+cp ~/Library/Preferences/com.apple.driver.AppleBluetoothMultitouch.trackpad.plist .
