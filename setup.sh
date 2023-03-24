@@ -1,7 +1,10 @@
 #!/bin/bash
 
 # Import trackpad settings
-defaults import com.apple.driver.AppleBluetoothMultitouch.trackpad ./TrackpadSettings.plist
+echo "Importing trackpad settings..."
+killall System\ Preferences
+rm ~/Library/Preferences/com.apple.driver.AppleHIDMouse.plist
+cp ./com.apple.driver.AppleHIDMouse.plist ~/Library/Preferences/
 
 # Download and install JetBrains Mono font family
 # Requirements to install fonts

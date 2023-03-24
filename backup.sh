@@ -1,1 +1,1 @@
-cp ~/Library/Preferences/com.apple.driver.AppleBluetoothMultitouch.trackpad.plist .
+cp ~/Library/Preferences/com.apple.driver.AppleHIDMouse.plist .
