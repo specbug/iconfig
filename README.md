@@ -1,2 +1,2 @@
 # iconfig
-Themes, schemes, &amp; packages; config checkpoints for Terminal, Sublime &amp; PyCharm.
+Themes, schemes & backups; states for personal tools & systems.
