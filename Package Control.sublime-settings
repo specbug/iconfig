@@ -10,8 +10,10 @@
 		"HTML-CSS-JS Prettify",
 		"HTML5",
 		"HTMLBeautify",
+		"Indent XML",
 		"IPython Notebook",
 		"JSON Stringify",
+		"Markdown Extended",
 		"Markdown HTML Preview",
 		"Materialize",
 		"One Dark Material - Theme",
@@ -23,6 +25,7 @@
 		"Scheme",
 		"sql-formatter",
 		"SqlBeautifier",
+		"SublimeLinter-xmllint",
 		"YamlToJson",
 	],
 }

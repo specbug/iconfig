@@ -5,7 +5,7 @@
 		"Vintage",
 	],
 	"theme": "OneDarkMaterial.sublime-theme",
-	"font_size": 22,
+	"font_size": 20,
 	"font_face": "JetBrains Mono",
 	"line_height": 1.2,
 	"line_padding_bottom": 1,
@@ -14,4 +14,6 @@
 	"show_tab_close_buttons": true,
 	"fold_buttons": true,
 	"file_tab_style": "square",
+	"auto_complete": true,
+	"tab_completion": true,
 }
