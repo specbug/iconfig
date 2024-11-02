@@ -1,2 +1,2 @@
 # iconfig
-Themes, schemes & backups; states for personal tools & systems.
+Configurator settings for virtual tools, identity & fingerprints.
