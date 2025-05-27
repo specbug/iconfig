@@ -20,8 +20,8 @@ A robust tool for synchronizing macOS application configurations across multiple
 ```bash
 git clone https://github.com/yourusername/iconfig.git
 cd iconfig
-chmod +x src/install-simple.sh
-./src/install-simple.sh
+chmod +x install.sh
+./install.sh
 ```
 
 ### Initial Setup
@@ -63,6 +63,9 @@ mac-sync-wizard restore
 
 ### `setup`
 Interactive wizard to configure repository and preferences.
+
+Options:
+- `--fresh`: Perform a fresh reinstall, removing all existing configuration and data.
 
 ### `sync`
 Manually sync configurations.

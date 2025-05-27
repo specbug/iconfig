@@ -142,16 +142,19 @@ install_script() {
     print_step "Installing Mac Sync Wizard script..."
     
     # Check if the script exists in the current directory
-    if [ -f "mac-sync-wizard-all-in-one.py" ]; then
+    if [ -f "iconfig.py" ]; then
+        cp "iconfig.py" "$APP_DIR/mac-sync-wizard.py"
+    # Check if the script exists in the Downloads directory
+    elif [ -f "$HOME/Downloads/iconfig.py" ]; then
+        cp "$HOME/Downloads/iconfig.py" "$APP_DIR/mac-sync-wizard.py"
+    # Fallback: check for old filename in current directory
+    elif [ -f "mac-sync-wizard-all-in-one.py" ]; then
         cp "mac-sync-wizard-all-in-one.py" "$APP_DIR/mac-sync-wizard.py"
-    # Check if the script exists in the src directory
+    # Fallback: check for old filename in src directory
     elif [ -f "src/mac-sync-wizard-all-in-one.py" ]; then
         cp "src/mac-sync-wizard-all-in-one.py" "$APP_DIR/mac-sync-wizard.py"
-    # Check if the script exists in the Downloads directory
-    elif [ -f "$HOME/Downloads/mac-sync-wizard-all-in-one.py" ]; then
-        cp "$HOME/Downloads/mac-sync-wizard-all-in-one.py" "$APP_DIR/mac-sync-wizard.py"
     else
-        print_error "Could not find mac-sync-wizard-all-in-one.py in current directory, src directory, or Downloads folder"
+        print_error "Could not find iconfig.py in current directory or Downloads folder"
         exit 1
     fi
     
