@@ -100,7 +100,7 @@ Options:
 
 ## Configuration
 
-Stored at: `~/.mac-sync-wizard/config/sync_config.json`
+Stored at: `~/.iconfig/config/sync_config.json`
 
 ### Repository Settings
 - **URL**: Git repository URL (SSH or HTTPS).
@@ -121,7 +121,7 @@ Stored at: `~/.mac-sync-wizard/config/sync_config.json`
 - Use SSH authentication for security.
 - Regularly sync (default every 6 hours).
 - Test major changes with `--dry-run`.
-- Review logs at `~/.mac-sync-wizard/logs/`.
+- Review logs at `~/.iconfig/logs/`.
 - Automatic backups are created before restores.
 
 ## Troubleshooting
@@ -138,8 +138,8 @@ Stored at: `~/.mac-sync-wizard/config/sync_config.json`
 - **Path does not exist**: Verify application installation paths.
 
 ### Logs
-- Application logs: `~/.mac-sync-wizard/logs/mac-sync-wizard.log`
-- Daemon logs: `~/.mac-sync-wizard/logs/daemon.log`
+- Application logs: `~/.iconfig/logs/iconfig.log`
+- Daemon logs: `~/.iconfig/logs/daemon.log`
 
 ## Advanced Usage
 
