@@ -6,6 +6,9 @@
 
 set -e
 
+# Save stdin to a new file descriptor to work around pipe issues
+exec 3<&0
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -142,7 +145,16 @@ echo -e "${YELLOW}Files in directory:${NC}"
 ls -la
 
 # Run install.sh which will find iconfig.py in the current directory
-./install.sh
+echo -e "${YELLOW}Running install.sh...${NC}"
+# Automatically answer 'n' to the setup question in install.sh to avoid stdin issues
+echo "n" | ./install.sh
+INSTALL_EXIT_CODE=$?
+if [ $INSTALL_EXIT_CODE -eq 0 ]; then
+    echo -e "${GREEN}✓ install.sh completed successfully${NC}"
+else
+    echo -e "${RED}install.sh failed with exit code: $INSTALL_EXIT_CODE${NC}"
+    echo -e "${RED}Installation may have failed. Check the output above for errors.${NC}"
+fi
 
 # Clean up
 echo -e "${BLUE}Cleaning up temporary files...${NC}"
@@ -157,11 +169,21 @@ echo -e "${GREEN}   Installation Complete!${NC}"
 echo -e "${GREEN}================================${NC}"
 echo ""
 
+# Debug: Check if we're in an interactive shell
+echo -e "${YELLOW}Debug: Script is still running after install.sh${NC}"
+echo -e "${YELLOW}Debug: HOME=$HOME${NC}"
+echo -e "${YELLOW}Debug: Current directory: $(pwd)${NC}"
+
 # Ask if this is a new machine setup
 echo -e "${BLUE}Is this a new machine where you want to restore existing configurations?${NC}"
 echo -e "${YELLOW}(If yes, we'll help you set up prerequisites and restore your configs)${NC}"
 echo ""
-read -p "Is this a new machine setup? [Y/n]: " -r NEW_MACHINE
+
+# Force flush output
+exec 1>&1 2>&1
+
+# Use the saved stdin from file descriptor 3
+read -p "Is this a new machine setup? [Y/n]: " -r NEW_MACHINE <&3
 echo ""
 
 if [[ -z "$NEW_MACHINE" || "$NEW_MACHINE" =~ ^[Yy]$ ]]; then
@@ -214,7 +236,7 @@ if [[ -z "$NEW_MACHINE" || "$NEW_MACHINE" =~ ^[Yy]$ ]]; then
     echo ""
     echo -e "${BLUE}Enter your existing iconfig repository URL:${NC}"
     echo -e "${YELLOW}(e.g., https://github.com/specbug/my-mac-configs.git or git@github.com:specbug/my-mac-configs.git)${NC}"
-    read -p "Repository URL: " REPO_URL
+    read -p "Repository URL: " REPO_URL <&3
     
     if [ -n "$REPO_URL" ]; then
         # Create a simple config for setup
@@ -229,7 +251,7 @@ if [[ -z "$NEW_MACHINE" || "$NEW_MACHINE" =~ ^[Yy]$ ]]; then
         echo ""
         echo -e "${BLUE}Would you like to install recommended applications?${NC}"
         echo -e "${YELLOW}This includes: Cursor, PyCharm, Sublime Text, Warp, and development tools${NC}"
-        read -p "Install applications now? [y/N]: " -r INSTALL_APPS
+        read -p "Install applications now? [y/N]: " -r INSTALL_APPS <&3
         
         if [[ "$INSTALL_APPS" =~ ^[Yy]$ ]]; then
             echo -e "${BLUE}Installing applications via Homebrew...${NC}"
