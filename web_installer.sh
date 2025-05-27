@@ -118,7 +118,7 @@ echo ""
 if [[ -z "$NEW_MACHINE" || "$NEW_MACHINE" =~ ^[Yy]$ ]]; then
     echo -e "${BLUE}Starting new machine setup...${NC}"
     
-    # Check prerequisites
+    # Check prerequisites FIRST
     echo -e "${BLUE}Checking prerequisites...${NC}"
     
     MISSING_PREREQS=()
@@ -138,7 +138,7 @@ if [[ -z "$NEW_MACHINE" || "$NEW_MACHINE" =~ ^[Yy]$ ]]; then
         MISSING_PREREQS+=("Git LFS (run: brew install git-lfs && git lfs install)")
     fi
     
-    # If prerequisites are missing, show instructions
+    # If prerequisites are missing, show instructions and exit
     if [ ${#MISSING_PREREQS[@]} -gt 0 ]; then
         echo -e "${RED}Missing prerequisites:${NC}"
         for prereq in "${MISSING_PREREQS[@]}"; do
@@ -155,18 +155,23 @@ if [[ -z "$NEW_MACHINE" || "$NEW_MACHINE" =~ ^[Yy]$ ]]; then
     
     echo -e "${GREEN}✓ All prerequisites installed${NC}"
     
-    # Ask for repository URL
+    # Get the configurations repository (always required for new machine setup)
     echo ""
     echo -e "${BLUE}Enter your Mac configurations repository URL:${NC}"
-    echo -e "${YELLOW}This is YOUR private repository where your Mac settings are stored${NC}"
+    echo -e "${YELLOW}This is the repository from your existing Mac where all your settings are stored${NC}"
     echo -e "${YELLOW}(e.g., https://github.com/yourusername/my-mac-configs.git or git@github.com:yourusername/my-mac-configs.git)${NC}"
-    echo -e "${YELLOW}Note: This is NOT the iconfig tool repository${NC}"
     read -p "Repository URL: " REPO_URL
     
-    if [ -n "$REPO_URL" ]; then
-        # Run setup with the repository URL
-        echo -e "${BLUE}Configuring iconfig with your repository...${NC}"
-        mac-sync-wizard setup --repo "$REPO_URL" --auto-restore
+    # Repository URL is required
+    if [ -z "$REPO_URL" ]; then
+        echo -e "${RED}Error: Repository URL is required for new machine setup${NC}"
+        echo -e "${YELLOW}You need an existing repository with your Mac configurations to restore from.${NC}"
+        exit 1
+    fi
+    
+    # Now run setup with the repository URL
+    echo -e "${BLUE}Configuring iconfig with your repository...${NC}"
+    mac-sync-wizard setup --repo "$REPO_URL" --auto-restore
         
         # Create Brewfile
         BREWFILE_PATH="$HOME/.iconfig/Brewfile"
@@ -238,14 +243,10 @@ EOF
             echo -e "${BLUE}brew bundle --file ~/.iconfig/Brewfile${NC}"
         fi
         
-        echo ""
-        echo -e "${GREEN}✨ New machine setup complete!${NC}"
-        echo -e "${YELLOW}Your configurations have been restored.${NC}"
-        echo -e "${YELLOW}Restart your terminal to load shell aliases and configurations.${NC}"
-    else
-        echo -e "${RED}No repository URL provided.${NC}"
-        echo -e "${YELLOW}Run 'mac-sync-wizard setup' later to configure.${NC}"
-    fi
+    echo ""
+    echo -e "${GREEN}✨ New machine setup complete!${NC}"
+    echo -e "${YELLOW}Your configurations have been restored.${NC}"
+    echo -e "${YELLOW}Restart your terminal to load shell aliases and configurations.${NC}"
 else
     # Regular setup for existing machine
     echo -e "${YELLOW}For existing machine setup:${NC}"
