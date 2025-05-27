@@ -36,9 +36,25 @@ done
 
 # Create temporary directory for installation
 echo -e "${BLUE}Creating temporary installation directory...${NC}"
-rm -rf "$INSTALL_DIR"
+
+# Clean up any existing installation directory to avoid conflicts
+if [ -d "$INSTALL_DIR" ]; then
+    echo -e "${YELLOW}Removing existing temporary directory...${NC}"
+    rm -rf "$INSTALL_DIR"
+fi
+
+# Create fresh directory
 mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
+
+# Double-check we're in an empty directory
+if [ "$(ls -A)" ]; then
+    echo -e "${RED}Warning: Installation directory is not empty!${NC}"
+    echo -e "${YELLOW}Contents:${NC}"
+    ls -la
+    echo -e "${YELLOW}Cleaning up...${NC}"
+    rm -rf ./* ./.[^.]* 2>/dev/null || true
+fi
 
 # Download the repository as a zip file (no git clone needed initially)
 echo -e "${BLUE}Downloading iconfig...${NC}"
@@ -53,14 +69,29 @@ fi
 
 # Extract the zip file
 echo -e "${BLUE}Extracting files...${NC}"
+
+# Clean up any existing extracted directories first
+echo -e "${YELLOW}Cleaning up any previous extraction attempts...${NC}"
+rm -rf "$REPO_NAME"-* 2>/dev/null || true
+
 if command -v unzip &> /dev/null; then
-    unzip -q iconfig.zip
+    # Extract quietly and overwrite if needed
+    unzip -q -o iconfig.zip
     rm iconfig.zip
-    # Move all files including hidden ones
-    mv "$REPO_NAME-$BRANCH"/* . 2>/dev/null || true
-    mv "$REPO_NAME-$BRANCH"/.[^.]* . 2>/dev/null || true
-    # Remove the now-empty directory
-    rm -rf "$REPO_NAME-$BRANCH"
+    
+    # Find the extracted directory (GitHub adds -main or -master suffix)
+    EXTRACTED_DIR=$(find . -maxdepth 1 -type d -name "$REPO_NAME-*" | head -1)
+    
+    if [ -n "$EXTRACTED_DIR" ]; then
+        echo -e "${YELLOW}Found extracted directory: $EXTRACTED_DIR${NC}"
+        # Use cp instead of mv to avoid issues, then remove
+        cp -R "$EXTRACTED_DIR"/* . 2>/dev/null || true
+        cp -R "$EXTRACTED_DIR"/.[^.]* . 2>/dev/null || true
+        # Force remove the directory
+        rm -rf "$EXTRACTED_DIR"
+    else
+        echo -e "${RED}Warning: Could not find extracted directory${NC}"
+    fi
 elif command -v tar &> /dev/null; then
     # Some systems might not have unzip but have tar
     echo -e "${YELLOW}unzip not found, trying alternative method...${NC}"
@@ -69,11 +100,20 @@ elif command -v tar &> /dev/null; then
     curl -fsSL "https://github.com/$REPO_OWNER/$REPO_NAME/archive/refs/heads/$BRANCH.tar.gz" -o iconfig.tar.gz
     tar -xzf iconfig.tar.gz
     rm iconfig.tar.gz
-    # Move all files including hidden ones
-    mv "$REPO_NAME-$BRANCH"/* . 2>/dev/null || true
-    mv "$REPO_NAME-$BRANCH"/.[^.]* . 2>/dev/null || true
-    # Remove the now-empty directory
-    rm -rf "$REPO_NAME-$BRANCH"
+    
+    # Find the extracted directory
+    EXTRACTED_DIR=$(find . -maxdepth 1 -type d -name "$REPO_NAME-*" | head -1)
+    
+    if [ -n "$EXTRACTED_DIR" ]; then
+        echo -e "${YELLOW}Found extracted directory: $EXTRACTED_DIR${NC}"
+        # Use cp instead of mv to avoid issues, then remove
+        cp -R "$EXTRACTED_DIR"/* . 2>/dev/null || true
+        cp -R "$EXTRACTED_DIR"/.[^.]* . 2>/dev/null || true
+        # Force remove the directory
+        rm -rf "$EXTRACTED_DIR"
+    else
+        echo -e "${RED}Warning: Could not find extracted directory${NC}"
+    fi
 else
     echo -e "${RED}Error: Neither unzip nor tar found. Please install one of them.${NC}"
     exit 1
