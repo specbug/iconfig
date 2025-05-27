@@ -157,8 +157,10 @@ if [[ -z "$NEW_MACHINE" || "$NEW_MACHINE" =~ ^[Yy]$ ]]; then
     
     # Ask for repository URL
     echo ""
-    echo -e "${BLUE}Enter your existing iconfig repository URL:${NC}"
-    echo -e "${YELLOW}(e.g., https://github.com/specbug/my-mac-configs.git or git@github.com:specbug/my-mac-configs.git)${NC}"
+    echo -e "${BLUE}Enter your Mac configurations repository URL:${NC}"
+    echo -e "${YELLOW}This is YOUR private repository where your Mac settings are stored${NC}"
+    echo -e "${YELLOW}(e.g., https://github.com/yourusername/my-mac-configs.git or git@github.com:yourusername/my-mac-configs.git)${NC}"
+    echo -e "${YELLOW}Note: This is NOT the iconfig tool repository${NC}"
     read -p "Repository URL: " REPO_URL
     
     if [ -n "$REPO_URL" ]; then
