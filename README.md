@@ -65,7 +65,7 @@ mac-sync-wizard restore
 
 ## Shell Configuration Sync
 
-iconfig automatically extracts and syncs your existing shell aliases across machines.
+iconfig automatically extracts and syncs your existing shell aliases and functions across machines.
 
 ### Setting Up Shell Sync
 
@@ -78,18 +78,18 @@ mac-sync-wizard setup
 ```
 
 The setup will:
-1. **Scan** your existing shell files (`.bashrc`, `.zshrc`, etc.) for aliases
-2. **Extract** all your aliases to `~/.iconfig/shell/aliases.sh`
+1. **Scan** your existing shell files (`.bashrc`, `.zshrc`, etc.) 
+2. **Extract** all your aliases and functions to `~/.iconfig/shell/aliases.sh`
 3. **Setup** auto-loading in your shell configuration
 4. **Preserve** your original files unchanged
 
 ### How It Works
 
 After setup:
-- Your existing aliases are copied to `~/.iconfig/shell/aliases.sh`
+- Your existing aliases and functions are copied to `~/.iconfig/shell/aliases.sh`
 - This file is synced when you run `mac-sync-wizard sync`
-- On new machines, `mac-sync-wizard restore` brings all your aliases
-- Machine-specific aliases can go in `~/.iconfig/shell/local.sh` (not synced)
+- On new machines, `mac-sync-wizard restore` brings all your aliases and functions
+- Machine-specific items can go in `~/.iconfig/shell/local.sh` (not synced)
 
 ### Example
 
@@ -97,9 +97,13 @@ After setup:
 # Your existing .zshrc has:
 alias gitpush='git push origin $(git rev-parse --abbrev-ref HEAD)'
 alias gs='git status'
-alias ll='ls -la'
 
-# After running setup_shell_sync.sh:
+gitpull() {
+    BRANCH=${1:-$(git rev-parse --abbrev-ref HEAD)}
+    git pull origin $BRANCH --no-rebase
+}
+
+# After setup:
 # These are automatically extracted to ~/.iconfig/shell/aliases.sh
 # And will sync to all your machines!
 ```

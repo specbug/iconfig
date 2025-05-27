@@ -2014,11 +2014,11 @@ def select_utilities(config: Dict[str, Any]) -> bool:
         
         # Special setup for shell aliases
         if utility == "shell" and enabled:
-            if get_yes_no("\nWould you like to extract and sync your existing shell aliases?", default=True):
+            if get_yes_no("\nWould you like to extract and sync your existing shell aliases and functions?", default=True):
                 if setup_shell_sync():
-                    print_success("Shell aliases extracted and ready to sync!")
+                    print_success("Shell aliases and functions extracted and ready to sync!")
                 else:
-                    print_warning("Shell setup skipped - you can manually add aliases to ~/.iconfig/shell/aliases.sh")
+                    print_warning("Shell setup skipped - you can manually add items to ~/.iconfig/shell/aliases.sh")
     
     # Keep installation-only utilities disabled
     for utility in installation_only:
@@ -2205,34 +2205,93 @@ def setup_shell_sync() -> bool:
     
     print_info(f"Found {len(rc_files)} shell configuration files")
     
-    # Extract aliases
-    print_step("Extracting existing aliases...")
+    # Extract aliases and functions
+    print_step("Extracting existing aliases and functions...")
     aliases = []
+    functions = []
     
     for rc_file in rc_files:
         try:
             with open(rc_file, 'r') as f:
-                for line in f:
+                lines = f.readlines()
+                i = 0
+                while i < len(lines):
+                    line = lines[i].strip()
+                    
                     # Match alias definitions
-                    if line.strip().startswith('alias '):
-                        aliases.append(line.rstrip())
+                    if line.startswith('alias '):
+                        aliases.append(lines[i].rstrip())
+                        i += 1
+                    
+                    # Match function definitions (name() { ... })
+                    elif '()' in line and '{' in line:
+                        # Found a function definition on one line
+                        func_lines = [lines[i].rstrip()]
+                        
+                        # Check if it's a one-liner
+                        if '}' in line:
+                            functions.append('\n'.join(func_lines))
+                        else:
+                            # Multi-line function, collect until closing }
+                            i += 1
+                            brace_count = 1
+                            while i < len(lines) and brace_count > 0:
+                                func_lines.append(lines[i].rstrip())
+                                brace_count += lines[i].count('{') - lines[i].count('}')
+                                i += 1
+                            functions.append('\n'.join(func_lines))
+                        i += 1
+                    
+                    # Match function keyword style (function name { ... })
+                    elif line.startswith('function '):
+                        func_lines = [lines[i].rstrip()]
+                        i += 1
+                        
+                        # Look for opening brace
+                        while i < len(lines) and '{' not in ''.join(func_lines):
+                            func_lines.append(lines[i].rstrip())
+                            i += 1
+                        
+                        # Now collect until closing brace
+                        if i < len(lines):
+                            brace_count = ''.join(func_lines).count('{') - ''.join(func_lines).count('}')
+                            while i < len(lines) and brace_count > 0:
+                                func_lines.append(lines[i].rstrip())
+                                brace_count += lines[i].count('{') - lines[i].count('}')
+                                i += 1
+                            functions.append('\n'.join(func_lines))
+                    else:
+                        i += 1
+                        
         except Exception as e:
             logger.warning(f"Failed to read {rc_file}: {str(e)}")
     
-    print_success(f"Found {len(aliases)} aliases")
+    total_items = len(aliases) + len(functions)
+    print_success(f"Found {len(aliases)} aliases and {len(functions)} functions")
     
     # Create aliases file
     aliases_file = os.path.join(shell_config_dir, "aliases.sh")
     with open(aliases_file, 'w') as f:
         f.write("#!/bin/bash\n")
-        f.write("# Synced shell aliases from iconfig\n")
+        f.write("# Synced shell aliases and functions from iconfig\n")
         f.write("# This file is automatically synced across your machines\n\n")
-        f.write("# ============================================\n")
-        f.write("# Auto-extracted aliases from your system\n")
-        f.write("# ============================================\n\n")
         
-        for alias in aliases:
-            f.write(f"{alias}\n")
+        if aliases:
+            f.write("# ============================================\n")
+            f.write("# Aliases\n")
+            f.write("# ============================================\n\n")
+            
+            for alias in aliases:
+                f.write(f"{alias}\n")
+            f.write("\n")
+        
+        if functions:
+            f.write("# ============================================\n")
+            f.write("# Functions\n")
+            f.write("# ============================================\n\n")
+            
+            for func in functions:
+                f.write(f"{func}\n\n")
     
     os.chmod(aliases_file, 0o755)
     
@@ -2275,12 +2334,26 @@ def setup_shell_sync() -> bool:
     os.chmod(loader_file, 0o755)
     
     # Show preview
-    if aliases:
-        print_step("Preview of extracted aliases:")
-        for i, alias in enumerate(aliases[:5]):
-            print(f"  {alias}")
-        if len(aliases) > 5:
-            print(f"  ... and {len(aliases) - 5} more aliases")
+    if aliases or functions:
+        print_step("Preview of extracted items:")
+        
+        # Show first few aliases
+        if aliases:
+            print("  Aliases:")
+            for alias in aliases[:3]:
+                print(f"    {alias}")
+            if len(aliases) > 3:
+                print(f"    ... and {len(aliases) - 3} more aliases")
+        
+        # Show first few functions
+        if functions:
+            print("  Functions:")
+            for func in functions[:2]:
+                # Show just the first line of each function
+                first_line = func.split('\n')[0]
+                print(f"    {first_line}")
+            if len(functions) > 2:
+                print(f"    ... and {len(functions) - 2} more functions")
     
     # Setup auto-loading
     current_shell = os.path.basename(os.environ.get('SHELL', ''))
