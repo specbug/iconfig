@@ -18,16 +18,19 @@ A robust tool for synchronizing macOS application configurations across multiple
 
 ### Installation
 
+#### Method 1: One-line installer (Recommended for fresh machines)
+```bash
+curl -fsSL https://raw.githubusercontent.com/specbug/iconfig/main/web_installer.sh | bash
+```
+
+This will download all required files and install iconfig automatically.
+
+#### Method 2: Clone and install
 ```bash
 git clone https://github.com/specbug/iconfig.git
 cd iconfig
 chmod +x install.sh
 ./install.sh
-```
-
-Or download and run directly:
-```bash
-curl -fsSL https://raw.githubusercontent.com/specbug/iconfig/main/install.sh | bash
 ```
 
 ### First Time Setup
