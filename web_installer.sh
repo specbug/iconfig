@@ -6,15 +6,35 @@
 
 set -e
 
-# Save stdin to a new file descriptor to work around pipe issues
-exec 3<&0
-
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Check if we're being piped or run directly
+if [ ! -t 0 ]; then
+    # We're being piped - download and re-execute
+    echo -e "${BLUE}Downloading iconfig installer...${NC}"
+    
+    TEMP_INSTALLER="/tmp/iconfig_installer_$$.sh"
+    
+    # Download the installer script
+    if curl -fsSL "https://raw.githubusercontent.com/specbug/iconfig/main/web_installer.sh" -o "$TEMP_INSTALLER"; then
+        chmod +x "$TEMP_INSTALLER"
+        echo -e "${GREEN}✓ Download complete${NC}"
+        echo -e "${BLUE}Running installer...${NC}"
+        
+        # Execute the downloaded script directly (not piped)
+        exec "$TEMP_INSTALLER"
+    else
+        echo -e "${RED}Failed to download installer${NC}"
+        exit 1
+    fi
+fi
+
+# If we get here, we're running directly (not piped)
 
 # Configuration
 REPO_OWNER="specbug"
@@ -169,28 +189,17 @@ echo -e "${GREEN}   Installation Complete!${NC}"
 echo -e "${GREEN}================================${NC}"
 echo ""
 
-# Debug: Check if we're in an interactive shell
-echo -e "${YELLOW}Debug: Script is still running after install.sh${NC}"
-echo -e "${YELLOW}Debug: HOME=$HOME${NC}"
-echo -e "${YELLOW}Debug: Current directory: $(pwd)${NC}"
-
 # Ask if this is a new machine setup
 echo -e "${BLUE}Is this a new machine where you want to restore existing configurations?${NC}"
 echo -e "${YELLOW}(If yes, we'll help you set up prerequisites and restore your configs)${NC}"
 echo ""
 
-# Force flush output
-exec 1>&1 2>&1
-
-# Use the saved stdin from file descriptor 3
-read -p "Is this a new machine setup? [Y/n]: " -r NEW_MACHINE <&3
+# Now we can use normal read since we're not piped
+read -p "Is this a new machine setup? [Y/n]: " -r NEW_MACHINE
 echo ""
 
 if [[ -z "$NEW_MACHINE" || "$NEW_MACHINE" =~ ^[Yy]$ ]]; then
     echo -e "${BLUE}Starting new machine setup...${NC}"
-    
-    # Install prerequisites
-    echo -e "${BLUE}Checking prerequisites...${NC}"
     
     # Check prerequisites
     echo -e "${BLUE}Checking prerequisites...${NC}"
@@ -236,7 +245,7 @@ if [[ -z "$NEW_MACHINE" || "$NEW_MACHINE" =~ ^[Yy]$ ]]; then
     echo ""
     echo -e "${BLUE}Enter your existing iconfig repository URL:${NC}"
     echo -e "${YELLOW}(e.g., https://github.com/specbug/my-mac-configs.git or git@github.com:specbug/my-mac-configs.git)${NC}"
-    read -p "Repository URL: " REPO_URL <&3
+    read -p "Repository URL: " REPO_URL
     
     if [ -n "$REPO_URL" ]; then
         # Create a simple config for setup
@@ -251,7 +260,7 @@ if [[ -z "$NEW_MACHINE" || "$NEW_MACHINE" =~ ^[Yy]$ ]]; then
         echo ""
         echo -e "${BLUE}Would you like to install recommended applications?${NC}"
         echo -e "${YELLOW}This includes: Cursor, PyCharm, Sublime Text, Warp, and development tools${NC}"
-        read -p "Install applications now? [y/N]: " -r INSTALL_APPS <&3
+        read -p "Install applications now? [y/N]: " -r INSTALL_APPS
         
         if [[ "$INSTALL_APPS" =~ ^[Yy]$ ]]; then
             echo -e "${BLUE}Installing applications via Homebrew...${NC}"
@@ -426,4 +435,9 @@ else
     echo -e "${BLUE}export PATH=\"\$HOME/.local/bin:\$PATH\"${NC}"
 fi
 
-echo "" 
+echo ""
+
+# Clean up the installer script itself if it was downloaded
+if [[ "$0" == "/tmp/iconfig_installer_"* ]]; then
+    rm -f "$0"
+fi 
