@@ -161,6 +161,7 @@ def get_menu_choice(options: List[Tuple[str, str]], title: str = "Please select 
 
 # Default utility configurations
 UTILITY_CONFIGS = {
+    # Syncable utilities (enabled by default)
     "cursor": {
         "enabled": True,
         "paths": [
@@ -213,14 +214,6 @@ UTILITY_CONFIGS = {
         ],
         "exclude_patterns": []
     },
-    "arc": {
-        "enabled": False,
-        "paths": [
-            "~/Library/Application Support/Arc/",
-            "~/Library/Preferences/company.thebrowser.Arc.plist"
-        ],
-        "exclude_patterns": ["Cache/*", "*.log"]
-    },
     "warp": {
         "enabled": True,
         "paths": [
@@ -240,7 +233,9 @@ UTILITY_CONFIGS = {
         "paths": [
             "~/Library/Fonts/"
         ],
-        "exclude_patterns": []
+        "exclude_patterns": [],
+        "include_patterns": [],  # If specified, only files matching these patterns will be synced
+        "custom_fonts": []  # List of font family names to sync (e.g., ["Zed Plex Sans", "SF Mono"])
     },
     "anki": {
         "enabled": True,
@@ -249,26 +244,6 @@ UTILITY_CONFIGS = {
             "~/Library/Application Support/Anki2/prefs21.db"
         ],
         "exclude_patterns": ["*.log"]
-    },
-    "logi": {
-        "enabled": False, # Disabled as per user request
-        "paths": [
-            "~/Library/Preferences/com.logi.optionsplus.plist",
-            "~/Library/Application Support/LogiOptionsPlus/config.json",
-            "~/Library/Application Support/LogiOptionsPlus/settings.db",
-            "~/Library/Application Support/LogiOptionsPlus/macros.db",
-            "~/Library/Application Support/LogiOptionsPlus/permissions.json",
-            "~/Library/Application Support/LogiOptionsPlus/cc_config.json"
-        ],
-        "exclude_patterns": []
-    },
-    "1password": {
-        "enabled": False,
-        "paths": [
-            "~/Library/Application Support/1Password/",
-            "~/Library/Preferences/com.1password.1password.plist"
-        ],
-        "exclude_patterns": ["*.log", "Cache/*"]
     },
     "stretchly": {
         "enabled": True,
@@ -283,6 +258,36 @@ UTILITY_CONFIGS = {
             "~/Library/Containers/org.p0deje.Maccy/Data/Library/Preferences/org.p0deje.Maccy.plist"
         ],
         "exclude_patterns": []
+    },
+    
+    # Installation-only utilities (disabled by default, not synced)
+    "arc": {
+        "enabled": False,  # Installation only
+        "paths": [
+            "~/Library/Application Support/Arc/",
+            "~/Library/Preferences/company.thebrowser.Arc.plist"
+        ],
+        "exclude_patterns": ["Cache/*", "*.log"]
+    },
+    "logi": {
+        "enabled": False,  # Installation only
+        "paths": [
+            "~/Library/Preferences/com.logi.optionsplus.plist",
+            "~/Library/Application Support/LogiOptionsPlus/config.json",
+            "~/Library/Application Support/LogiOptionsPlus/settings.db",
+            "~/Library/Application Support/LogiOptionsPlus/macros.db",
+            "~/Library/Application Support/LogiOptionsPlus/permissions.json",
+            "~/Library/Application Support/LogiOptionsPlus/cc_config.json"
+        ],
+        "exclude_patterns": []
+    },
+    "1password": {
+        "enabled": False,  # Installation only
+        "paths": [
+            "~/Library/Application Support/1Password/",
+            "~/Library/Preferences/com.1password.1password.plist"
+        ],
+        "exclude_patterns": ["*.log", "Cache/*"]
     }
 }
 
@@ -296,7 +301,8 @@ DEFAULT_CONFIG = {
     "sync": {
         "frequency": 21600,  # 6 hours in seconds
         "auto_commit": True,
-        "commit_message_template": "Auto-sync: {date} - {changes}"
+        "commit_message_template": "Auto-sync: {date} - {changes}",
+        "pull_strategy": "rebase"  # "rebase" or "merge"
     },
     "notifications": {
         "level": "errors_only",  # all, errors_only, none
@@ -422,6 +428,38 @@ def command_exists(command: str) -> bool:
     exit_code, _, _ = run_command(["which", command], check=False)
     return exit_code == 0
 
+def get_directory_size(path: str) -> Tuple[int, str]:
+    """Get the size of a directory in bytes and human-readable format."""
+    try:
+        if os.path.isfile(path):
+            size = os.path.getsize(path)
+        else:
+            # Use du command for accurate size calculation
+            exit_code, stdout, _ = run_command(["du", "-sk", path], check=False)
+            if exit_code == 0:
+                # du -sk returns size in KB
+                size = int(stdout.split()[0]) * 1024
+            else:
+                # Fallback to Python calculation
+                size = 0
+                for dirpath, dirnames, filenames in os.walk(path):
+                    for filename in filenames:
+                        filepath = os.path.join(dirpath, filename)
+                        try:
+                            size += os.path.getsize(filepath)
+                        except:
+                            pass
+        
+        # Convert to human-readable format
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if size < 1024.0:
+                return size, f"{size:.1f} {unit}"
+            size /= 1024.0
+        return size * 1024 * 1024 * 1024 * 1024, f"{size:.1f} PB"
+    except Exception as e:
+        logger.error(f"Failed to get size for {path}: {str(e)}")
+        return 0, "0 B"
+
 def check_disk_space(path: str, required_mb: int = 100) -> Tuple[bool, str]:
     """Check if there's enough disk space at the given path."""
     try:
@@ -458,6 +496,13 @@ def check_git_credentials(repo_url: str) -> Tuple[bool, str]:
     
     return True, "Git credentials check passed"
 
+def check_git_lfs() -> Tuple[bool, str]:
+    """Check if Git LFS is installed."""
+    if command_exists("git-lfs"):
+        return True, "Git LFS is installed"
+    else:
+        return False, "Git LFS not installed (needed for large files)"
+
 def perform_preflight_checks(config: Dict[str, Any]) -> bool:
     """Perform pre-flight checks before sync operations."""
     print_step("Performing pre-flight checks...")
@@ -466,7 +511,8 @@ def perform_preflight_checks(config: Dict[str, Any]) -> bool:
         ("Git installation", lambda: (command_exists("git"), "Git is installed" if command_exists("git") else "Git is not installed")),
         ("Disk space", lambda: check_disk_space(APP_DIR)),
         ("Network connectivity", lambda: check_network_connectivity()),
-        ("Git credentials", lambda: check_git_credentials(config.get("repository", {}).get("url", "")))
+        ("Git credentials", lambda: check_git_credentials(config.get("repository", {}).get("url", ""))),
+        ("Git LFS", lambda: check_git_lfs())
     ]
     
     all_passed = True
@@ -561,6 +607,35 @@ def connect_existing_repo_flow(url: str, branch: str) -> bool:
         print_error(f"Failed to connect to existing repository {url}.")
         return False
 
+def setup_git_lfs_for_fonts() -> bool:
+    """Setup Git LFS for font files."""
+    try:
+        # Check if Git LFS is available
+        if not command_exists("git-lfs"):
+            print_warning("Git LFS is not installed. Large font files may cause issues.")
+            print_info("Install with: brew install git-lfs")
+            return False
+        
+        # Initialize Git LFS in the repository
+        exit_code, _, stderr = run_command(["git", "lfs", "install"], cwd=REPO_DIR, check=False)
+        if exit_code != 0:
+            logger.error(f"Failed to initialize Git LFS: {stderr}")
+            return False
+        
+        # Track font files with Git LFS
+        font_patterns = ["*.ttf", "*.otf", "*.ttc", "*.woff", "*.woff2"]
+        for pattern in font_patterns:
+            exit_code, _, _ = run_command(["git", "lfs", "track", f"backups/fonts/{pattern}"], cwd=REPO_DIR, check=False)
+        
+        # Add .gitattributes to track LFS files
+        exit_code, _, _ = run_command(["git", "add", ".gitattributes"], cwd=REPO_DIR, check=False)
+        
+        logger.info("Git LFS configured for font files")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to setup Git LFS: {str(e)}")
+        return False
+
 def create_new_repo(url: str, branch: str) -> bool:
     """Create a new repository and set remote."""
     try:
@@ -576,6 +651,9 @@ def create_new_repo(url: str, branch: str) -> bool:
                  print_error(f"Failed to initialize Git repository: {stderr}")
                  return False
             logger.info("Git repository already exists or was reinitialized.")
+        
+        # Setup Git LFS for fonts
+        setup_git_lfs_for_fonts()
 
         # Set remote
         # Try removing remote origin first, in case it exists and is wrong (e.g. re-initializing)
@@ -585,6 +663,13 @@ def create_new_repo(url: str, branch: str) -> bool:
             logger.error(f"git remote add origin failed: {stderr}")
             print_error(f"Failed to set remote origin: {stderr}")
             return False
+        
+        # Fetch from remote to get all branches
+        print_step("Fetching from remote repository...")
+        exit_code, _, stderr = run_command(["git", "fetch", "origin"], cwd=REPO_DIR, check=False)
+        if exit_code != 0:
+            logger.warning(f"git fetch failed: {stderr}. This might be a new empty repository.")
+            # Don't fail here - might be a new empty repo
         
         # Create initial structure
         for dir_name in ["backups", "config", "logs"]:
@@ -610,17 +695,21 @@ def create_new_repo(url: str, branch: str) -> bool:
                 # print_error(f"Failed to make initial commit: {stderr}") # This might be too noisy if it's not a real problem
                 # return False # Decided not to fail hard here, as repo might be usable
         
-        # Create branch if not main, and ensure we are on it
+        # Check if branch exists on remote after fetch
+        exit_code, remote_branches, _ = run_command(["git", "branch", "-r"], cwd=REPO_DIR, check=False)
+        remote_branch_exists = f"origin/{branch}" in remote_branches if exit_code == 0 else False
+        
         # Check if branch already exists locally
         exit_code_local_branch, local_branch_stdout, _ = run_command(["git", "branch", "--list", branch], cwd=REPO_DIR, check=False)
-        # Check if branch already exists remotely (and we fetched it)
-        exit_code_remote_branch, remote_branch_stdout, _ = run_command(["git", "ls-remote", "--heads", "origin", branch], cwd=REPO_DIR, check=False)
 
         current_branch_code, current_branch_name, _ = run_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=REPO_DIR, check=False)
         current_branch_name = current_branch_name.strip() if current_branch_code == 0 else ""
 
         if current_branch_name == branch:
             logger.info(f"Already on branch '{branch}'.")
+            # Try to set upstream if remote branch exists
+            if remote_branch_exists:
+                run_command(["git", "branch", f"--set-upstream-to=origin/{branch}", branch], cwd=REPO_DIR, check=False)
         elif branch in local_branch_stdout:
             logger.info(f"Switching to existing local branch '{branch}'.")
             exit_code, _, stderr = run_command(["git", "checkout", branch], cwd=REPO_DIR, check=False)
@@ -628,17 +717,22 @@ def create_new_repo(url: str, branch: str) -> bool:
                 logger.error(f"git checkout {branch} failed: {stderr}")
                 print_error(f"Failed to checkout local branch {branch}: {stderr}")
                 return False
-        elif branch in remote_branch_stdout:
-             logger.info(f"Remote branch '{branch}' exists. Checking it out and setting up for tracking.")
-             exit_code, _, stderr = run_command(["git", "checkout", "-t", f"origin/{branch}"], cwd=REPO_DIR, check=False)
-             if exit_code != 0:
-                # Fallback: create local branch and try to push/set upstream later
-                logger.warning(f"Failed to checkout remote branch '{branch}' with tracking: {stderr}. Creating local branch.")
-                exit_code, _, stderr = run_command(["git", "checkout", "-b", branch], cwd=REPO_DIR, check=False)
+            # Set upstream if remote branch exists
+            if remote_branch_exists:
+                run_command(["git", "branch", f"--set-upstream-to=origin/{branch}", branch], cwd=REPO_DIR, check=False)
+        elif remote_branch_exists:
+            logger.info(f"Remote branch 'origin/{branch}' exists. Checking it out...")
+            # Create local branch from remote
+            exit_code, _, stderr = run_command(["git", "checkout", "-b", branch, f"origin/{branch}"], cwd=REPO_DIR, check=False)
+            if exit_code != 0:
+                # Maybe branch already exists locally, try just checking it out
+                exit_code, _, stderr = run_command(["git", "checkout", branch], cwd=REPO_DIR, check=False)
                 if exit_code != 0:
-                    logger.error(f"git checkout -b {branch} failed: {stderr}")
-                    print_error(f"Failed to create branch {branch}: {stderr}")
+                    logger.error(f"Failed to checkout branch {branch}: {stderr}")
+                    print_error(f"Failed to checkout branch {branch}: {stderr}")
                     return False
+                # Set upstream
+                run_command(["git", "branch", f"--set-upstream-to=origin/{branch}", branch], cwd=REPO_DIR, check=False)
         else:
             logger.info(f"Creating new branch '{branch}'.")
             exit_code, _, stderr = run_command(["git", "checkout", "-b", branch], cwd=REPO_DIR, check=False)
@@ -726,6 +820,165 @@ def connect_existing_repo(url: str, branch: str) -> bool:
     except Exception as e:
         logger.error(f"Unexpected error connecting to repository: {str(e)}")
         return False
+
+def get_font_files_for_family(font_family_name: str) -> List[str]:
+    """Get all font files for a given font family name (as shown in Font Book)."""
+    fonts_dir = os.path.expanduser("~/Library/Fonts/")
+    matching_files = []
+    
+    # Common patterns for font family names to file names
+    # e.g., "Zed Plex Sans" might be "ZedPlexSans-Regular.ttf", "Zed Plex Sans.ttf", etc.
+    search_patterns = [
+        # Exact match with spaces
+        f"{font_family_name}*.ttf",
+        f"{font_family_name}*.otf",
+        f"{font_family_name}*.ttc",
+        # Without spaces
+        f"{font_family_name.replace(' ', '')}*.ttf",
+        f"{font_family_name.replace(' ', '')}*.otf",
+        f"{font_family_name.replace(' ', '')}*.ttc",
+        # With dashes instead of spaces
+        f"{font_family_name.replace(' ', '-')}*.ttf",
+        f"{font_family_name.replace(' ', '-')}*.otf",
+        f"{font_family_name.replace(' ', '-')}*.ttc",
+        # With underscores instead of spaces
+        f"{font_family_name.replace(' ', '_')}*.ttf",
+        f"{font_family_name.replace(' ', '_')}*.otf",
+        f"{font_family_name.replace(' ', '_')}*.ttc",
+    ]
+    
+    import glob
+    found_files = set()  # Use set to avoid duplicates
+    
+    for pattern in search_patterns:
+        pattern_path = os.path.join(fonts_dir, pattern)
+        matches = glob.glob(pattern_path, recursive=False)
+        for match in matches:
+            found_files.add(os.path.basename(match))
+    
+    # Also check case-insensitive matches
+    all_font_files = []
+    try:
+        all_font_files = [f for f in os.listdir(fonts_dir) if os.path.isfile(os.path.join(fonts_dir, f))]
+    except:
+        pass
+    
+    # Check for files that contain the font family name (case-insensitive)
+    family_lower = font_family_name.lower()
+    family_no_space = font_family_name.replace(' ', '').lower()
+    
+    for font_file in all_font_files:
+        font_file_lower = font_file.lower()
+        # Check if the family name (with or without spaces) is in the filename
+        if (family_lower in font_file_lower or 
+            family_no_space in font_file_lower or
+            family_lower.replace(' ', '-') in font_file_lower or
+            family_lower.replace(' ', '_') in font_file_lower):
+            found_files.add(font_file)
+    
+    return sorted(list(found_files))
+
+def backup_fonts(custom_fonts: list, include_patterns: list = None, exclude_patterns: list = None, dry_run: bool = False) -> bool:
+    """Backup fonts with custom selection support using font family names."""
+    logger.info(f"Backing up fonts{' (DRY RUN)' if dry_run else ''}")
+    
+    fonts_dir = os.path.expanduser("~/Library/Fonts/")
+    backup_path = os.path.join(REPO_DIR, "backups", "fonts")
+    
+    if not dry_run:
+        os.makedirs(backup_path, exist_ok=True)
+    
+    success = True
+    files_copied = 0
+    
+    if not os.path.exists(fonts_dir):
+        logger.warning(f"Fonts directory does not exist: {fonts_dir}")
+        return False
+    
+    try:
+        if custom_fonts:
+            # Custom fonts now contains font family names, not file names
+            logger.info(f"Backing up {len(custom_fonts)} font families")
+            for font_family in custom_fonts:
+                # Get all files for this font family
+                font_files = get_font_files_for_family(font_family)
+                
+                if not font_files:
+                    logger.warning(f"No files found for font family: {font_family}")
+                    print_warning(f"No files found for font family: {font_family}")
+                    continue
+                
+                logger.info(f"Found {len(font_files)} files for font family '{font_family}'")
+                
+                for font_file in font_files:
+                    font_path = os.path.join(fonts_dir, font_file)
+                    if os.path.exists(font_path):
+                        if dry_run:
+                            logger.info(f"[DRY RUN] Would copy {font_file} (from {font_family})")
+                            files_copied += 1
+                        else:
+                            dest_path = os.path.join(backup_path, font_file)
+                            shutil.copy2(font_path, dest_path)
+                            files_copied += 1
+                            logger.debug(f"Copied {font_file}")
+                    else:
+                        logger.warning(f"Font file not found: {font_file}")
+                        
+        elif include_patterns:
+            # Use include patterns to select fonts
+            import glob
+            logger.info(f"Using include patterns: {include_patterns}")
+            for pattern in include_patterns:
+                pattern_path = os.path.join(fonts_dir, pattern)
+                matching_files = glob.glob(pattern_path)
+                for font_path in matching_files:
+                    font_name = os.path.basename(font_path)
+                    if dry_run:
+                        logger.info(f"[DRY RUN] Would copy font {font_name}")
+                        files_copied += 1
+                    else:
+                        dest_path = os.path.join(backup_path, font_name)
+                        shutil.copy2(font_path, dest_path)
+                        files_copied += 1
+                        logger.debug(f"Copied font {font_name}")
+        else:
+            # Backup all fonts (excluding patterns if specified)
+            logger.warning("No custom fonts or include patterns specified - backing up ALL fonts")
+            logger.warning("This may result in large backup sizes. Consider specifying custom_fonts or include_patterns.")
+            
+            for font_name in os.listdir(fonts_dir):
+                font_path = os.path.join(fonts_dir, font_name)
+                
+                # Skip if matches exclude pattern
+                if exclude_patterns:
+                    skip = False
+                    for pattern in exclude_patterns:
+                        import fnmatch
+                        if fnmatch.fnmatch(font_name, pattern):
+                            skip = True
+                            break
+                    if skip:
+                        continue
+                
+                if os.path.isfile(font_path):
+                    if dry_run:
+                        logger.info(f"[DRY RUN] Would copy font {font_name}")
+                        files_copied += 1
+                    else:
+                        dest_path = os.path.join(backup_path, font_name)
+                        shutil.copy2(font_path, dest_path)
+                        files_copied += 1
+    
+    except Exception as e:
+        logger.error(f"Failed to backup fonts: {str(e)}")
+        success = False
+    
+    if files_copied == 0:
+        logger.warning("No fonts were copied")
+    else:
+        logger.info(f"{'Would backup' if dry_run else 'Backed up'} {files_copied} font files")
+    
+    return success
 
 def backup_utility(utility_name: str, source_paths: list, exclude_patterns: list = None, dry_run: bool = False) -> bool:
     """Backup a specific utility's configuration."""
@@ -948,8 +1201,8 @@ def push_changes(branch: Optional[str] = None) -> bool:
         logger.error(f"Unexpected error pushing changes: {str(e)}")
         return False
 
-def pull_changes(branch: Optional[str] = None) -> bool:
-    """Pull changes from remote repository."""
+def pull_changes(branch: Optional[str] = None, use_rebase: Optional[bool] = None) -> bool:
+    """Pull changes from remote repository using rebase to maintain clean history."""
     if not branch:
         # Get current branch
         try:
@@ -964,13 +1217,77 @@ def pull_changes(branch: Optional[str] = None) -> bool:
         except:
             branch = "main"
     
-    logger.info(f"Pulling changes from branch: {branch}")
+    # Determine pull strategy if not specified
+    if use_rebase is None:
+        config = load_config()
+        pull_strategy = config.get("sync", {}).get("pull_strategy", "rebase")
+        use_rebase = pull_strategy == "rebase"
+    
+    logger.info(f"Pulling changes from branch: {branch} (strategy: {'rebase' if use_rebase else 'merge'})")
     
     try:
-        # Pull changes
-        exit_code, _, _ = run_command(["git", "pull", "origin", branch], cwd=REPO_DIR)
+        # First, check if there are uncommitted changes
+        exit_code, stdout, _ = run_command(["git", "status", "--porcelain"], cwd=REPO_DIR, check=False)
+        if exit_code == 0 and stdout.strip():
+            logger.warning("Uncommitted changes detected. Stashing them before pull.")
+            print_warning("Uncommitted changes detected. Stashing them temporarily...")
+            
+            # Stash changes
+            exit_code, _, stderr = run_command(["git", "stash", "push", "-m", "Auto-stash before pull"], cwd=REPO_DIR, check=False)
+            if exit_code != 0:
+                logger.error(f"Failed to stash changes: {stderr}")
+                print_error("Failed to stash uncommitted changes. Please commit or stash them manually.")
+                return False
+            
+            stashed = True
+        else:
+            stashed = False
+        
+        # Fetch latest changes
+        exit_code, _, stderr = run_command(["git", "fetch", "origin"], cwd=REPO_DIR, check=False)
         if exit_code != 0:
+            logger.error(f"Failed to fetch from origin: {stderr}")
+            print_error(f"Failed to fetch from remote: {stderr}")
             return False
+        
+        # Pull with configured strategy
+        pull_args = ["git", "pull"]
+        if use_rebase:
+            pull_args.append("--rebase")
+        pull_args.extend(["origin", branch])
+        
+        exit_code, stdout, stderr = run_command(pull_args, cwd=REPO_DIR, check=False)
+        
+        if exit_code != 0:
+            if "CONFLICT" in stderr or "conflict" in stderr.lower():
+                logger.error("Merge conflicts detected during rebase")
+                print_error("Conflicts detected during pull. Attempting to abort rebase...")
+                
+                # Abort the rebase
+                run_command(["git", "rebase", "--abort"], cwd=REPO_DIR, check=False)
+                
+                # Try a regular pull instead
+                print_warning("Falling back to regular merge strategy...")
+                exit_code, _, stderr = run_command(["git", "pull", "origin", branch], cwd=REPO_DIR, check=False)
+                
+                if exit_code != 0:
+                    logger.error(f"Failed to pull changes even with merge strategy: {stderr}")
+                    print_error("Failed to pull changes. Your repository may have conflicts that need manual resolution.")
+                    print_info("You can try resolving this manually with: cd ~/.mac-sync-wizard/repo && git pull")
+                    return False
+            else:
+                logger.error(f"Failed to pull changes: {stderr}")
+                print_error(f"Failed to pull changes: {stderr}")
+                return False
+        
+        # If we stashed changes, pop them back
+        if stashed:
+            print_info("Restoring stashed changes...")
+            exit_code, _, stderr = run_command(["git", "stash", "pop"], cwd=REPO_DIR, check=False)
+            if exit_code != 0:
+                logger.warning(f"Failed to pop stashed changes: {stderr}")
+                print_warning("Failed to restore stashed changes automatically.")
+                print_info("Your changes are still saved. You can restore them manually with: cd ~/.mac-sync-wizard/repo && git stash pop")
         
         logger.info("Changes pulled successfully")
         return True
@@ -1080,6 +1397,8 @@ def perform_sync(config: Dict[str, Any]) -> bool:
     
     print_step(f"Backing up {len(enabled_utilities)} enabled utilities...")
     backup_failures = []
+    utility_sizes = {}
+    total_size = 0
     
     for utility in enabled_utilities:
         utility_config = config["utilities"].get(utility)
@@ -1087,17 +1406,138 @@ def perform_sync(config: Dict[str, Any]) -> bool:
             logger.warning(f"No configuration found for utility: {utility}")
             continue
         
-        print(f"  • {'Would backup' if dry_run else 'Backing up'} {utility}...")
-        if not backup_utility(
-            utility,
-            utility_config["paths"],
-            utility_config.get("exclude_patterns", []),
-            dry_run=dry_run
-        ):
-            backup_failures.append(utility)
+        # Calculate size before backup
+        utility_total_size = 0
+        size_info = []
+        
+        # Special size calculation for fonts
+        if utility == "fonts":
+            custom_fonts = utility_config.get("custom_fonts", [])
+            include_patterns = utility_config.get("include_patterns", [])
+            
+            if custom_fonts or include_patterns:
+                # Calculate size only for configured fonts
+                fonts_dir = os.path.expanduser("~/Library/Fonts/")
+                
+                if custom_fonts:
+                    # Calculate size for specific font families
+                    for font_family in custom_fonts:
+                        font_files = get_font_files_for_family(font_family)
+                        family_size = 0
+                        for font_file in font_files:
+                            font_path = os.path.join(fonts_dir, font_file)
+                            if os.path.exists(font_path):
+                                file_size = os.path.getsize(font_path)
+                                family_size += file_size
+                        
+                        if family_size > 0:
+                            # Convert to human readable
+                            temp_size = family_size
+                            for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+                                if temp_size < 1024.0:
+                                    size_human = f"{temp_size:.1f} {unit}"
+                                    break
+                                temp_size /= 1024.0
+                            size_info.append(f"{font_family}: {size_human}")
+                            utility_total_size += family_size
+                
+                elif include_patterns:
+                    # Calculate size for pattern-matched fonts
+                    import glob
+                    for pattern in include_patterns:
+                        pattern_path = os.path.join(fonts_dir, pattern)
+                        matching_files = glob.glob(pattern_path)
+                        pattern_size = 0
+                        for font_path in matching_files:
+                            if os.path.exists(font_path):
+                                pattern_size += os.path.getsize(font_path)
+                        
+                        if pattern_size > 0:
+                            # Convert to human readable
+                            temp_size = pattern_size
+                            for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+                                if temp_size < 1024.0:
+                                    size_human = f"{temp_size:.1f} {unit}"
+                                    break
+                                temp_size /= 1024.0
+                            size_info.append(f"{pattern}: {size_human}")
+                            utility_total_size += pattern_size
+            else:
+                # No custom configuration, calculate full directory size
+                for path in utility_config["paths"]:
+                    expanded_path = os.path.expanduser(path)
+                    if os.path.exists(expanded_path):
+                        size_bytes, size_human = get_directory_size(expanded_path)
+                        utility_total_size += size_bytes
+                        size_info.append(f"{os.path.basename(expanded_path)}: {size_human}")
+        else:
+            # Regular utility size calculation
+            for path in utility_config["paths"]:
+                expanded_path = os.path.expanduser(path)
+                if os.path.exists(expanded_path):
+                    size_bytes, size_human = get_directory_size(expanded_path)
+                    utility_total_size += size_bytes
+                    size_info.append(f"{os.path.basename(expanded_path)}: {size_human}")
+        
+        utility_sizes[utility] = (utility_total_size, size_info)
+        total_size += utility_total_size
+        
+        # Convert utility total to human readable
+        _, utility_size_human = get_directory_size("dummy")  # Just to get formatting
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if utility_total_size < 1024.0:
+                utility_size_human = f"{utility_total_size:.1f} {unit}"
+                break
+            utility_total_size /= 1024.0
+        
+        print(f"  • {'Would backup' if dry_run else 'Backing up'} {utility} ({utility_size_human})...")
+        
+        # Special handling for fonts
+        if utility == "fonts":
+            custom_fonts = utility_config.get("custom_fonts", [])
+            include_patterns = utility_config.get("include_patterns", [])
+            exclude_patterns = utility_config.get("exclude_patterns", [])
+            
+            if not backup_fonts(
+                custom_fonts=custom_fonts,
+                include_patterns=include_patterns,
+                exclude_patterns=exclude_patterns,
+                dry_run=dry_run
+            ):
+                backup_failures.append(utility)
+        else:
+            # Regular utility backup
+            if not backup_utility(
+                utility,
+                utility_config["paths"],
+                utility_config.get("exclude_patterns", []),
+                dry_run=dry_run
+            ):
+                backup_failures.append(utility)
     
     if backup_failures:
         print_warning(f"Failed to backup: {', '.join(backup_failures)}")
+    
+    # Show size summary if verbose mode is enabled
+    if config.get("verbose", False):
+        print_step("Backup size summary:")
+        for utility, (size_bytes, size_details) in utility_sizes.items():
+            if size_details:
+                print(f"  • {utility}:")
+                for detail in size_details:
+                    print(f"      - {detail}")
+    
+    # Always show total size
+    temp_size = total_size
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if temp_size < 1024.0:
+            total_size_human = f"{temp_size:.1f} {unit}"
+            break
+        temp_size /= 1024.0
+    else:
+        total_size_human = f"{temp_size:.1f} PB"
+    
+    print(f"\n  Total size to sync: {total_size_human}")
     
     # Commit and push changes
     if config["sync"]["auto_commit"] and not dry_run:
@@ -1524,11 +1964,31 @@ def select_utilities(config: Dict[str, Any]) -> bool:
     installed = detect_installed_utilities()
     print(f"Detected {len(installed)} installed utilities on your system.")
     
-    # For each utility, ask if it should be enabled
+    # Separate utilities into syncable and installation-only
+    syncable_utilities = []
+    installation_only = []
+    
     for utility, util_config in config["utilities"].items():
+        # Check if this utility is meant for syncing (enabled by default in UTILITY_CONFIGS)
+        default_enabled = UTILITY_CONFIGS.get(utility, {}).get("enabled", True)
+        if default_enabled:
+            syncable_utilities.append(utility)
+        else:
+            installation_only.append(utility)
+    
+    # Show installation-only utilities for information
+    if installation_only:
+        print_info(f"Installation-only utilities (not synced): {', '.join(installation_only)}")
+    
+    # Only ask about syncable utilities
+    print_step("Configure sync settings for available utilities:")
+    
+    for utility in syncable_utilities:
+        util_config = config["utilities"][utility]
         is_installed = utility in installed
         status = "installed" if is_installed else "not detected"
         
+        # For syncable utilities, default to enabled if installed
         enabled = get_yes_no(
             f"Enable sync for {utility} ({status})?",
             default=is_installed
@@ -1536,9 +1996,318 @@ def select_utilities(config: Dict[str, Any]) -> bool:
         
         config["utilities"][utility]["enabled"] = enabled
         status = "enabled" if enabled else "disabled"
-        print(f"{utility} sync {status}")
+        print(f"  {utility} sync {status}")
+        
+        # Special configuration for fonts
+        if utility == "fonts" and enabled:
+            if get_yes_no("\nWould you like to configure custom font selection?", default=True):
+                configure_fonts(config["utilities"]["fonts"])
+    
+    # Keep installation-only utilities disabled
+    for utility in installation_only:
+        config["utilities"][utility]["enabled"] = False
     
     return True
+
+def get_installed_font_families() -> List[Tuple[str, int]]:
+    """Get a list of installed font families with file counts."""
+    fonts_dir = os.path.expanduser("~/Library/Fonts/")
+    font_families = {}
+    
+    try:
+        # Analyze all font files to extract family names
+        for font_file in os.listdir(fonts_dir):
+            if not os.path.isfile(os.path.join(fonts_dir, font_file)):
+                continue
+                
+            # Skip non-font files
+            if not font_file.lower().endswith(('.ttf', '.otf', '.ttc')):
+                continue
+            
+            # Extract potential family name from filename
+            # Remove extension
+            base_name = os.path.splitext(font_file)[0]
+            
+            # Common patterns to extract family name
+            # Remove weight/style suffixes
+            family_name = base_name
+            
+            # Remove common weight/style indicators
+            for suffix in ['-Regular', '-Bold', '-Italic', '-Light', '-Medium', '-Thin', 
+                          '-Black', '-Heavy', '-ExtraLight', '-ExtraBold', '-SemiBold',
+                          '-BoldItalic', '-LightItalic', '-MediumItalic', '-ThinItalic',
+                          '-Oblique', '-BoldOblique', 'Regular', 'Bold', 'Italic']:
+                if family_name.endswith(suffix):
+                    family_name = family_name[:-len(suffix)]
+                    break
+            
+            # Handle camelCase to spaces (e.g., "ZedPlexSans" -> "Zed Plex Sans")
+            import re
+            family_name = re.sub(r'(?<!^)(?=[A-Z])', ' ', family_name).strip()
+            
+            # Count files per family
+            if family_name:
+                font_families[family_name] = font_families.get(family_name, 0) + 1
+    
+    except Exception as e:
+        logger.error(f"Failed to analyze font families: {str(e)}")
+    
+    # Sort by name and return as list of tuples
+    return sorted([(name, count) for name, count in font_families.items()])
+
+def interactive_font_selector(existing_selections: List[str] = None) -> List[str]:
+    """Interactive font family selector with search and multi-select."""
+    if existing_selections is None:
+        existing_selections = []
+    
+    selected_fonts = set(existing_selections)
+    
+    print_header("Interactive Font Selector")
+    print("Loading installed fonts...")
+    
+    # Get all font families
+    all_fonts = get_installed_font_families()
+    
+    if not all_fonts:
+        print_error("No fonts found in ~/Library/Fonts/")
+        return list(selected_fonts)
+    
+    print(f"\nFound {len(all_fonts)} font families")
+    print("\nCommands:")
+    print("  [number]     - Toggle selection of a font")
+    print("  [a]ll        - Select all fonts")
+    print("  [c]lear      - Clear all selections")
+    print("  [s]earch     - Search for fonts")
+    print("  [d]one       - Finish selection")
+    print("  [q]uit       - Cancel without saving")
+    
+    # Display fonts in pages
+    page_size = 20
+    current_page = 0
+    search_filter = ""
+    
+    while True:
+        # Filter fonts based on search
+        if search_filter:
+            filtered_fonts = [(name, count) for name, count in all_fonts 
+                            if search_filter.lower() in name.lower()]
+            print(f"\n🔍 Searching for: '{search_filter}' ({len(filtered_fonts)} results)")
+        else:
+            filtered_fonts = all_fonts
+        
+        # Calculate pagination
+        total_pages = (len(filtered_fonts) + page_size - 1) // page_size
+        current_page = min(current_page, total_pages - 1)
+        current_page = max(0, current_page)
+        
+        start_idx = current_page * page_size
+        end_idx = min(start_idx + page_size, len(filtered_fonts))
+        
+        # Display current page
+        print(f"\n📄 Page {current_page + 1}/{total_pages}")
+        print("─" * 80)
+        
+        for i in range(start_idx, end_idx):
+            font_name, file_count = filtered_fonts[i]
+            selected = "✓" if font_name in selected_fonts else " "
+            print(f"  [{selected}] {i + 1:3d}. {font_name:<40} ({file_count} files)")
+        
+        print("─" * 80)
+        print(f"Selected: {len(selected_fonts)} fonts")
+        
+        # Show navigation options
+        nav_options = []
+        if current_page > 0:
+            nav_options.append("[p]revious")
+        if current_page < total_pages - 1:
+            nav_options.append("[n]ext")
+        if nav_options:
+            print(f"Navigation: {', '.join(nav_options)}")
+        
+        # Get user input
+        choice = input("\nYour choice: ").strip().lower()
+        
+        if choice == 'd' or choice == 'done':
+            break
+        elif choice == 'q' or choice == 'quit':
+            return existing_selections  # Return original selections
+        elif choice == 'a' or choice == 'all':
+            selected_fonts = set(name for name, _ in filtered_fonts)
+            print_success(f"Selected all {len(selected_fonts)} fonts")
+        elif choice == 'c' or choice == 'clear':
+            selected_fonts.clear()
+            print_success("Cleared all selections")
+        elif choice == 's' or choice == 'search':
+            search_filter = input("Search for font (empty to clear): ").strip()
+            current_page = 0  # Reset to first page
+        elif choice == 'p' or choice == 'previous':
+            if current_page > 0:
+                current_page -= 1
+        elif choice == 'n' or choice == 'next':
+            if current_page < total_pages - 1:
+                current_page += 1
+        elif choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < len(filtered_fonts):
+                font_name = filtered_fonts[idx][0]
+                if font_name in selected_fonts:
+                    selected_fonts.remove(font_name)
+                    print(f"  Deselected: {font_name}")
+                else:
+                    selected_fonts.add(font_name)
+                    print(f"  Selected: {font_name}")
+            else:
+                print_error("Invalid number")
+        else:
+            print_error("Invalid choice")
+    
+    return sorted(list(selected_fonts))
+
+def configure_fonts(fonts_config: Dict[str, Any]) -> None:
+    """Configure font sync settings."""
+    print_header("Font Sync Configuration")
+    
+    print("By default, ALL fonts in ~/Library/Fonts/ will be synced (can be very large).")
+    print("You can specify font families by name (as shown in Font Book) to sync only specific fonts.")
+    
+    options = [
+        ("interactive", "Interactive font selector (recommended)"),
+        ("manual", "Manually type font family names"),
+        ("pattern", "Use file patterns to match fonts (e.g., 'MyCompany-*.ttf')"),
+        ("exclude", "Sync all fonts except specific patterns"),
+        ("all", "Sync all fonts (default, may be large)"),
+        ("skip", "Skip font configuration for now")
+    ]
+    
+    choice = get_menu_choice(options, "How would you like to configure font syncing?")
+    
+    if choice == "interactive":
+        # Use interactive selector
+        existing = fonts_config.get("custom_fonts", [])
+        selected_fonts = interactive_font_selector(existing)
+        
+        if selected_fonts:
+            fonts_config["custom_fonts"] = selected_fonts
+            print_success(f"Will sync {len(selected_fonts)} font families")
+            
+            # Show summary of what will be synced
+            total_files = 0
+            total_size = 0
+            large_files_warning = False
+            
+            for font in selected_fonts:
+                files = get_font_files_for_family(font)
+                total_files += len(files)
+                
+                # Calculate size for this font family
+                fonts_dir = os.path.expanduser("~/Library/Fonts/")
+                for file in files:
+                    file_path = os.path.join(fonts_dir, file)
+                    if os.path.exists(file_path):
+                        file_size = os.path.getsize(file_path)
+                        total_size += file_size
+                        if file_size > 50 * 1024 * 1024:  # 50MB warning threshold
+                            large_files_warning = True
+                
+                # Show first 5 fonts
+                if len(selected_fonts) <= 5 or selected_fonts.index(font) < 5:
+                    print(f"  • {font} ({len(files)} files)")
+            
+            if len(selected_fonts) > 5:
+                print(f"  ... and {len(selected_fonts) - 5} more families")
+            
+            # Show total size
+            size_mb = total_size / (1024 * 1024)
+            print(f"\nTotal size: {size_mb:.1f} MB")
+            
+            # Warn about large files
+            if large_files_warning:
+                print_warning("Some font files are larger than 50MB!")
+                if not command_exists("git-lfs"):
+                    print_error("Git LFS is not installed. Large files will cause issues!")
+                    print_info("Install Git LFS with: brew install git-lfs")
+                    print_info("Then run: git lfs install")
+                else:
+                    print_success("Git LFS is installed and will handle large files")
+        else:
+            print_warning("No fonts selected")
+    
+    elif choice == "manual":
+        print_info("Enter font family names as they appear in Font Book (e.g., 'Zed Plex Sans', 'SF Mono')")
+        print_info("This will automatically include all weights and styles for each font family.")
+        print_info("Press Enter on an empty line when done.")
+        
+        custom_fonts = []
+        while True:
+            font = input("Font family name: ").strip()
+            if not font:
+                break
+            custom_fonts.append(font)
+            
+            # Show what files will be included for this font family
+            font_files = get_font_files_for_family(font)
+            if font_files:
+                print(f"  Found {len(font_files)} files: {', '.join(font_files[:3])}" + 
+                      (f" and {len(font_files) - 3} more" if len(font_files) > 3 else ""))
+            else:
+                print_warning(f"  No files found for '{font}' - please check the name")
+        
+        if custom_fonts:
+            fonts_config["custom_fonts"] = custom_fonts
+            print_success(f"Will sync {len(custom_fonts)} font families")
+        else:
+            print_warning("No font families specified")
+    
+    elif choice == "pattern":
+        print_info("Enter file patterns to match fonts (e.g., 'MyCompany-*.ttf', 'Custom*.otf')")
+        print_info("Press Enter on an empty line when done.")
+        
+        include_patterns = []
+        while True:
+            pattern = input("Pattern: ").strip()
+            if not pattern:
+                break
+            include_patterns.append(pattern)
+        
+        if include_patterns:
+            fonts_config["include_patterns"] = include_patterns
+            print_success(f"Will sync fonts matching {len(include_patterns)} patterns")
+        else:
+            print_warning("No patterns specified")
+    
+    elif choice == "exclude":
+        print_info("Enter patterns to exclude (e.g., 'System*.ttf', '*.dfont')")
+        print_info("Press Enter on an empty line when done.")
+        
+        exclude_patterns = []
+        while True:
+            pattern = input("Exclude pattern: ").strip()
+            if not pattern:
+                break
+            exclude_patterns.append(pattern)
+        
+        if exclude_patterns:
+            fonts_config["exclude_patterns"] = exclude_patterns
+            print_success(f"Will exclude fonts matching {len(exclude_patterns)} patterns")
+        else:
+            print_warning("No exclude patterns specified")
+    
+    elif choice == "all":
+        # Clear any custom configuration
+        fonts_config.pop("custom_fonts", None)
+        fonts_config.pop("include_patterns", None)
+        print_warning("Will sync ALL fonts (this may be very large!)")
+    
+    # Show current configuration summary
+    if fonts_config.get("custom_fonts"):
+        print_info(f"Font families to sync: {', '.join(fonts_config['custom_fonts'][:3])}" + 
+                  (f" and {len(fonts_config['custom_fonts']) - 3} more" if len(fonts_config['custom_fonts']) > 3 else ""))
+    elif fonts_config.get("include_patterns"):
+        print_info(f"Include patterns: {', '.join(fonts_config['include_patterns'])}")
+    elif fonts_config.get("exclude_patterns"):
+        print_info(f"Exclude patterns: {', '.join(fonts_config['exclude_patterns'])}")
+    else:
+        print_info("Syncing all fonts")
 
 def configure_sync(config: Dict[str, Any]) -> bool:
     """Configure sync settings."""
@@ -1782,6 +2551,9 @@ def sync_command(args):
         print_warning("DRY RUN MODE: No changes will be made")
         config["dry_run"] = True
     
+    if hasattr(args, 'verbose') and args.verbose:
+        config["verbose"] = True
+    
     if args.daemon:
         logger.info("Running in daemon mode")
         # In a real implementation, this would start a daemon process
@@ -1832,6 +2604,14 @@ def config_command(args):
         logger.info("Resetting configuration to defaults")
         config = create_default_config()
         print_success("Configuration reset to defaults")
+    elif hasattr(args, 'fonts') and args.fonts:
+        logger.info("Configuring font sync settings")
+        if "fonts" in config["utilities"]:
+            configure_fonts(config["utilities"]["fonts"])
+            save_config(config)
+            print_success("Font configuration saved")
+        else:
+            print_error("Fonts utility not found in configuration")
     else:
         run_config_ui()
 
@@ -1856,8 +2636,39 @@ def status_command(args):
     
     if args.verbose:
         print("\nEnabled utilities:")
+        total_size = 0
         for utility in status['enabled_utilities']:
-            print(f"  - {utility}")
+            utility_config = config["utilities"].get(utility, {})
+            utility_size = 0
+            
+            # Calculate size for this utility
+            for path in utility_config.get("paths", []):
+                expanded_path = os.path.expanduser(path)
+                if os.path.exists(expanded_path):
+                    size_bytes, _ = get_directory_size(expanded_path)
+                    utility_size += size_bytes
+            
+            total_size += utility_size
+            
+            # Convert to human readable
+            temp_size = utility_size
+            for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+                if temp_size < 1024.0:
+                    size_human = f"{temp_size:.1f} {unit}"
+                    break
+                temp_size /= 1024.0
+            
+            print(f"  - {utility} ({size_human})")
+        
+        # Show total size
+        temp_size = total_size
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if temp_size < 1024.0:
+                total_size_human = f"{temp_size:.1f} {unit}"
+                break
+            temp_size /= 1024.0
+        
+        print(f"\nTotal size of enabled utilities: {total_size_human}")
 
 def install_command(args):
     """Install or uninstall the background service"""
@@ -1982,6 +2793,7 @@ def main():
     sync_parser = subparsers.add_parser("sync", help="Perform a manual sync")
     sync_parser.add_argument("--daemon", action="store_true", help="Run as daemon")
     sync_parser.add_argument("--dry-run", action="store_true", help="Show what would be done without making changes")
+    sync_parser.add_argument("--verbose", "-v", action="store_true", help="Show detailed output including file sizes")
     
     # Config command
     config_parser = subparsers.add_parser("config", help="Configure sync settings")
@@ -1989,6 +2801,7 @@ def main():
     config_parser.add_argument("--enable", help="Enable a utility")
     config_parser.add_argument("--disable", help="Disable a utility")
     config_parser.add_argument("--reset", action="store_true", help="Reset to defaults")
+    config_parser.add_argument("--fonts", action="store_true", help="Configure font sync settings")
     
     # Status command
     status_parser = subparsers.add_parser("status", help="Check sync status")

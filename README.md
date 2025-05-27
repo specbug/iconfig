@@ -12,6 +12,7 @@ A robust tool for synchronizing macOS application configurations across multiple
 - **Pre-flight Checks**: Validates environment before syncing.
 - **Resume Support**: Setup wizard can resume after interruptions.
 - **Detailed Logging**: Comprehensive logs for troubleshooting.
+- **Smart Font Sync**: Selective font syncing to avoid large backups.
 
 ## Quick Start
 
@@ -20,49 +21,90 @@ A robust tool for synchronizing macOS application configurations across multiple
 ```bash
 git clone https://github.com/yourusername/iconfig.git
 cd iconfig
-chmod +x src/install-simple.sh
-./src/install-simple.sh
+chmod +x install.sh
+./install.sh
 ```
 
-### Initial Setup
+Or download and run directly:
+```bash
+curl -fsSL https://raw.githubusercontent.com/yourusername/iconfig/main/install.sh | bash
+```
+
+### First Time Setup
 
 ```bash
 mac-sync-wizard setup
 ```
 
-### Regular Usage
+### Manual Sync
 
 ```bash
-# Sync configurations
 mac-sync-wizard sync
+```
 
-# Check sync status
-mac-sync-wizard status
+### Restore on New Machine
 
-# Restore configurations on a new machine
+```bash
+mac-sync-wizard setup
 mac-sync-wizard restore
 ```
 
 ## Supported Applications
 
-- **Cursor** (editor settings, keybindings)
-- **PyCharm** (IDE settings: keymaps, options, code styles)
-- **Sublime Text** (user packages)
-- **Trackpad** (macOS preferences)
-- **Git** (configuration and settings)
-- **Arc Browser** *(installation only, sync disabled by default)*
-- **Warp Terminal** (themes, settings)
-- **Fonts** (user-installed fonts)
-- **Anki** (add-ons, preferences)
-- **Logitech Options+** *(installation only, sync disabled by default)*
-- **1Password** *(installation only, sync disabled by default)*
-- **Stretchly** (break reminder settings)
-- **Maccy** (clipboard manager preferences)
+- **Cursor**: Editor settings, keybindings, extensions
+- **PyCharm**: IDE settings, keymaps, code styles
+- **Sublime Text**: User preferences and packages
+- **Trackpad**: macOS trackpad preferences
+- **Git**: Global git configuration
+- **Warp**: Terminal themes and settings
+- **Fonts**: Custom fonts (with selective sync)
+- **Anki**: Add-ons and preferences
+- **Stretchly**: Break reminder settings
+- **Maccy**: Clipboard manager preferences
+
+## Font Sync Configuration
+
+By default, syncing the entire `~/Library/Fonts/` directory can result in very large backups (1.5GB+). iconfig provides several options to sync only the fonts you need:
+
+### Configure Font Sync
+
+During setup or using the config command:
+
+```bash
+# Configure fonts interactively
+mac-sync-wizard config --fonts
+
+# Or through the main config UI
+mac-sync-wizard config
+```
+
+### Font Sync Options
+
+1. **Font Families by Name**: Specify font families as they appear in Font Book
+   ```
+   Example: "Zed Plex Sans", "SF Mono", "JetBrains Mono"
+   ```
+   This automatically includes all weights and styles (Regular, Bold, Italic, etc.)
+
+2. **File Pattern Matching**: Use wildcards to match font files
+   ```
+   Example: MyCompany-*.ttf, Custom*.otf
+   ```
+
+3. **Exclude Patterns**: Sync all fonts except those matching patterns
+   ```
+   Example: Exclude System*.ttf, *.dfont
+   ```
+
+4. **All Fonts**: Sync everything (default, but not recommended due to size)
 
 ## Commands
 
 ### `setup`
 Interactive wizard to configure repository and preferences.
+
+Options:
+- `--fresh`: Perform a fresh reinstall, removing all existing configuration and data.
 
 ### `sync`
 Manually sync configurations.
@@ -70,6 +112,7 @@ Manually sync configurations.
 Options:
 - `--dry-run`: Preview changes without applying.
 - `--daemon`: Run continuously in the background.
+- `--verbose`: Show detailed output including file sizes.
 
 ### `restore`
 Restore configurations from repository.
@@ -85,6 +128,7 @@ Options:
 - `--disable <utility>`: Disable syncing for a utility.
 - `--frequency <seconds>`: Set automatic sync interval.
 - `--reset`: Reset configuration to defaults.
+- `--fonts`: Configure font sync settings.
 
 ### `status`
 Check current sync status.
@@ -93,95 +137,81 @@ Options:
 - `--verbose`: Detailed status information.
 
 ### `install`
-Manage background sync service (LaunchAgent).
+Manage background sync service.
 
 Options:
-- `--uninstall`: Remove background sync service.
+- `--uninstall`: Remove the background service.
 
 ## Configuration
 
-Stored at: `~/.iconfig/config/sync_config.json`
+Configuration is stored in `~/.iconfig/config/sync_config.json`.
 
 ### Repository Settings
-- **URL**: Git repository URL (SSH or HTTPS).
-- **Branch**: Branch for syncing (default: `main`).
-- **Auth Type**: SSH or HTTPS.
+- URL: Your Git repository URL
+- Branch: Branch to use for syncing (default: main)
+- Authentication: SSH (recommended) or HTTPS
 
 ### Sync Settings
-- **Frequency**: Automatic sync interval (seconds).
-- **Auto Commit**: Automatically commit changes.
-- **Commit Message Template**: Customize commit messages.
+- Frequency: How often to sync automatically
+- Auto-commit: Whether to commit changes automatically
+- Pull strategy: Rebase (default) or merge
 
-### Notification Settings
-- **Level**: `all`, `errors_only`, or `none`.
-- **Method**: Terminal notifications (`terminal-notifier`).
+### Utility Settings
+Each utility can be individually enabled/disabled and has:
+- Paths: Files/directories to sync
+- Exclude patterns: Files to ignore
+- Include patterns: File patterns to specifically include (fonts only)
+- Custom fonts: Font family names to sync (fonts only, e.g., "Zed Plex Sans")
 
-## Best Practices
+## Large Files (Fonts) Support
 
-- Use SSH authentication for security.
-- Regularly sync (default every 6 hours).
-- Test major changes with `--dry-run`.
-- Review logs at `~/.iconfig/logs/`.
-- Automatic backups are created before restores.
+Some font files can exceed Git's 100MB limit. iconfig automatically uses Git LFS (Large File Storage) for font files.
+
+### Setup Git LFS
+
+1. Install Git LFS:
+   ```bash
+   brew install git-lfs
+   ```
+
+2. The setup wizard will automatically configure Git LFS for your repository
+
+3. If using GitHub, ensure your repository has LFS enabled (it's free for up to 1GB)
+
+### Alternative: Split Font Selection
+
+If you can't use Git LFS, consider:
+- Syncing only essential custom fonts
+- Using the interactive selector to choose smaller font families
+- Excluding large font families (like variable fonts with many weights)
 
 ## Troubleshooting
 
-### Pre-flight Checks
-- Ensure Git is installed and accessible.
-- Verify at least 100MB free disk space.
-- Confirm network connectivity.
-- Configure Git credentials (SSH keys for SSH URLs).
+### Logs
+Logs are stored in `~/.iconfig/logs/`
 
 ### Common Issues
-- **No SSH key found**: Generate with `ssh-keygen` and add to Git provider.
-- **Failed to pull changes**: Check network and repository access.
-- **Path does not exist**: Verify application installation paths.
 
-### Logs
-- Application logs: `~/.iconfig/logs/iconfig.log`
-- Daemon logs: `~/.iconfig/logs/daemon.log`
+1. **Git not found**: Install Git via Homebrew: `brew install git`
+2. **SSH authentication fails**: Ensure SSH keys are set up for your Git provider
+3. **Large font files**: Install Git LFS: `brew install git-lfs`
+4. **Large sync size**: Configure font sync to only include needed fonts
+5. **Conflicts during sync**: The tool will attempt to resolve automatically, or prompt for manual resolution
 
-## Advanced Usage
+## Security
 
-### Custom Paths
-Edit `sync_config.json` to add custom paths:
-
-```json
-{
-  "utilities": {
-    "custom_app": {
-      "enabled": true,
-      "paths": [
-        "~/Library/Application Support/CustomApp/",
-        "~/Library/Preferences/com.company.customapp.plist"
-      ],
-      "exclude_patterns": ["*.log", "Cache/*"]
-    }
-  }
-}
-```
-
-### Exclude Patterns
-Use rsync-style patterns:
-- `*.log`: Exclude log files.
-- `Cache/*`: Exclude cache directories.
-- `**/node_modules`: Exclude node_modules directories.
-
-## Security Considerations
-
-- Never commit sensitive files (use `.gitignore`).
-- Use private repositories for configurations.
-- Local backups are created before restores.
-- Audit logs regularly.
+- SSH keys are recommended for repository authentication
+- Sensitive files can be excluded using patterns
+- All operations create backups before making changes
+- Repository should be private to protect your configurations
 
 ## Contributing
 
-Contributions are welcome:
-
-1. Fork the repository.
-2. Create a feature branch.
-3. Submit a pull request.
+Pull requests are welcome! Please ensure:
+- Code follows existing style
+- Changes are tested on macOS
+- Documentation is updated
 
 ## License
 
-MIT License – see `LICENSE` file for details.
+MIT License - see LICENSE file for details
