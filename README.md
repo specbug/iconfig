@@ -18,9 +18,11 @@ A robust tool for synchronizing macOS application configurations across multiple
 
 ### Installation
 
-#### Method 1: One-line installer (Recommended for fresh machines)
+#### Method 1: Web installer (Recommended for fresh machines)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/specbug/iconfig/main/web_installer.sh | bash
+curl -O https://raw.githubusercontent.com/specbug/iconfig/main/web_installer.sh
+chmod +x web_installer.sh
+./web_installer.sh
 ```
 
 This will download all required files and install iconfig automatically.
@@ -45,10 +47,12 @@ mac-sync-wizard setup
 mac-sync-wizard sync
 ```
 
-### New Machine Setup (One command!)
+### New Machine Setup
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/specbug/iconfig/main/web_installer.sh | bash
+curl -O https://raw.githubusercontent.com/specbug/iconfig/main/web_installer.sh
+chmod +x web_installer.sh
+./web_installer.sh
 ```
 
 When prompted, answer "Yes" to new machine setup. The installer will:
