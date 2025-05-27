@@ -161,6 +161,7 @@ def get_menu_choice(options: List[Tuple[str, str]], title: str = "Please select 
 
 # Default utility configurations
 UTILITY_CONFIGS = {
+    # Syncable utilities (enabled by default)
     "cursor": {
         "enabled": True,
         "paths": [
@@ -213,14 +214,6 @@ UTILITY_CONFIGS = {
         ],
         "exclude_patterns": []
     },
-    "arc": {
-        "enabled": False,
-        "paths": [
-            "~/Library/Application Support/Arc/",
-            "~/Library/Preferences/company.thebrowser.Arc.plist"
-        ],
-        "exclude_patterns": ["Cache/*", "*.log"]
-    },
     "warp": {
         "enabled": True,
         "paths": [
@@ -250,26 +243,6 @@ UTILITY_CONFIGS = {
         ],
         "exclude_patterns": ["*.log"]
     },
-    "logi": {
-        "enabled": False, # Disabled as per user request
-        "paths": [
-            "~/Library/Preferences/com.logi.optionsplus.plist",
-            "~/Library/Application Support/LogiOptionsPlus/config.json",
-            "~/Library/Application Support/LogiOptionsPlus/settings.db",
-            "~/Library/Application Support/LogiOptionsPlus/macros.db",
-            "~/Library/Application Support/LogiOptionsPlus/permissions.json",
-            "~/Library/Application Support/LogiOptionsPlus/cc_config.json"
-        ],
-        "exclude_patterns": []
-    },
-    "1password": {
-        "enabled": False,
-        "paths": [
-            "~/Library/Application Support/1Password/",
-            "~/Library/Preferences/com.1password.1password.plist"
-        ],
-        "exclude_patterns": ["*.log", "Cache/*"]
-    },
     "stretchly": {
         "enabled": True,
         "paths": [
@@ -283,6 +256,36 @@ UTILITY_CONFIGS = {
             "~/Library/Containers/org.p0deje.Maccy/Data/Library/Preferences/org.p0deje.Maccy.plist"
         ],
         "exclude_patterns": []
+    },
+    
+    # Installation-only utilities (disabled by default, not synced)
+    "arc": {
+        "enabled": False,  # Installation only
+        "paths": [
+            "~/Library/Application Support/Arc/",
+            "~/Library/Preferences/company.thebrowser.Arc.plist"
+        ],
+        "exclude_patterns": ["Cache/*", "*.log"]
+    },
+    "logi": {
+        "enabled": False,  # Installation only
+        "paths": [
+            "~/Library/Preferences/com.logi.optionsplus.plist",
+            "~/Library/Application Support/LogiOptionsPlus/config.json",
+            "~/Library/Application Support/LogiOptionsPlus/settings.db",
+            "~/Library/Application Support/LogiOptionsPlus/macros.db",
+            "~/Library/Application Support/LogiOptionsPlus/permissions.json",
+            "~/Library/Application Support/LogiOptionsPlus/cc_config.json"
+        ],
+        "exclude_patterns": []
+    },
+    "1password": {
+        "enabled": False,  # Installation only
+        "paths": [
+            "~/Library/Application Support/1Password/",
+            "~/Library/Preferences/com.1password.1password.plist"
+        ],
+        "exclude_patterns": ["*.log", "Cache/*"]
     }
 }
 
@@ -1524,11 +1527,31 @@ def select_utilities(config: Dict[str, Any]) -> bool:
     installed = detect_installed_utilities()
     print(f"Detected {len(installed)} installed utilities on your system.")
     
-    # For each utility, ask if it should be enabled
+    # Separate utilities into syncable and installation-only
+    syncable_utilities = []
+    installation_only = []
+    
     for utility, util_config in config["utilities"].items():
+        # Check if this utility is meant for syncing (enabled by default in UTILITY_CONFIGS)
+        default_enabled = UTILITY_CONFIGS.get(utility, {}).get("enabled", True)
+        if default_enabled:
+            syncable_utilities.append(utility)
+        else:
+            installation_only.append(utility)
+    
+    # Show installation-only utilities for information
+    if installation_only:
+        print_info(f"Installation-only utilities (not synced): {', '.join(installation_only)}")
+    
+    # Only ask about syncable utilities
+    print_step("Configure sync settings for available utilities:")
+    
+    for utility in syncable_utilities:
+        util_config = config["utilities"][utility]
         is_installed = utility in installed
         status = "installed" if is_installed else "not detected"
         
+        # For syncable utilities, default to enabled if installed
         enabled = get_yes_no(
             f"Enable sync for {utility} ({status})?",
             default=is_installed
@@ -1536,7 +1559,11 @@ def select_utilities(config: Dict[str, Any]) -> bool:
         
         config["utilities"][utility]["enabled"] = enabled
         status = "enabled" if enabled else "disabled"
-        print(f"{utility} sync {status}")
+        print(f"  {utility} sync {status}")
+    
+    # Keep installation-only utilities disabled
+    for utility in installation_only:
+        config["utilities"][utility]["enabled"] = False
     
     return True
 
