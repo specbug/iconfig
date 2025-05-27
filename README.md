@@ -98,6 +98,13 @@ The setup:
 - This file syncs across machines
 - Machine-specific items go in `~/.iconfig/shell/local.sh` (not synced)
 
+### Restoration
+
+When you run `mac-sync-wizard restore` on a new machine:
+1. Shell files are copied to `~/.iconfig/shell/`
+2. Your shell configuration is automatically updated to load aliases
+3. Run `source ~/.zshrc` (or restart terminal) to activate
+
 ### Example
 
 ```bash
