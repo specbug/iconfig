@@ -106,6 +106,10 @@ def print_menu(options: List[Tuple[str, str]], title: str = "Please select an op
     
     print(f"{TerminalColors.BLUE}┗{'━' * 78}┛{TerminalColors.RESET}")
 
+def print_info(message: str):
+    """Print an informational message."""
+    print(f"\n{TerminalColors.BLUE}ℹ️  {message}{TerminalColors.RESET}\n")
+
 def get_input(prompt: str, default: str = None) -> str:
     """Get user input with an optional default value."""
     if default:
@@ -169,11 +173,22 @@ UTILITY_CONFIGS = {
     "pycharm": {
         "enabled": True,
         "paths": [
-            "~/Library/Preferences/PyCharm*/keymaps/",
-            "~/Library/Preferences/PyCharm*/options/",
-            "~/Library/Application Support/JetBrains/PyCharm*/plugins/"
+            "~/Library/Application Support/JetBrains/PyCharm*/options/",
+            "~/Library/Application Support/JetBrains/PyCharm*/keymaps/",
+            "~/Library/Application Support/JetBrains/PyCharm*/codestyles/",
+            "~/Library/Application Support/JetBrains/PyCharm*/templates/",
+            "~/Library/Application Support/JetBrains/PyCharm*/colors/",
+            "~/Library/Application Support/JetBrains/PyCharm*/fileTemplates/",
+            "~/Library/Application Support/JetBrains/PyCharm*/inspection/",
+            "~/Library/Application Support/JetBrains/PyCharm*/tools/",
+            "~/Library/Application Support/JetBrains/PyCharm*/shelf/"
         ],
-        "exclude_patterns": ["*.log", "Cache/*"]
+        "exclude_patterns": [
+            "*.log", "Cache/*", "workspace/", "tasks/", "scratches/",
+            "jdbc-drivers/", "ssl/", "port", "plugins/updatedPlugins.xml",
+            "marketplace/", "*.hprof", "*.snapshot", "eval/", "repair/",
+            "*/.DS_Store"
+        ]
     },
     "sublime": {
         "enabled": True,
@@ -199,7 +214,7 @@ UTILITY_CONFIGS = {
         "exclude_patterns": []
     },
     "arc": {
-        "enabled": True,
+        "enabled": False,
         "paths": [
             "~/Library/Application Support/Arc/",
             "~/Library/Preferences/company.thebrowser.Arc.plist"
@@ -209,10 +224,16 @@ UTILITY_CONFIGS = {
     "warp": {
         "enabled": True,
         "paths": [
-            "~/.warp/",
-            "~/Library/Application Support/dev.warp.Warp-Stable/"
+            "~/.warp/themes/",
+            "~/.warp/launch_configurations/",
+            "~/.warp/user_scripts/",
+            "~/.warp/settings.yaml",
+            "~/.warp/keybindings.json"
         ],
-        "exclude_patterns": ["Cache/*", "*.log"]
+        "exclude_patterns": [
+            "Cache/*", "*.log", "*.pyc", "__pycache__",
+            "*.sock", "*.pid"
+        ]
     },
     "fonts": {
         "enabled": True,
@@ -230,15 +251,19 @@ UTILITY_CONFIGS = {
         "exclude_patterns": ["*.log"]
     },
     "logi": {
-        "enabled": True,
+        "enabled": False, # Disabled as per user request
         "paths": [
             "~/Library/Preferences/com.logi.optionsplus.plist",
-            "~/Library/Application Support/Logitech/"
+            "~/Library/Application Support/LogiOptionsPlus/config.json",
+            "~/Library/Application Support/LogiOptionsPlus/settings.db",
+            "~/Library/Application Support/LogiOptionsPlus/macros.db",
+            "~/Library/Application Support/LogiOptionsPlus/permissions.json",
+            "~/Library/Application Support/LogiOptionsPlus/cc_config.json"
         ],
-        "exclude_patterns": ["Cache/*"]
+        "exclude_patterns": []
     },
     "1password": {
-        "enabled": True,
+        "enabled": False,
         "paths": [
             "~/Library/Application Support/1Password/",
             "~/Library/Preferences/com.1password.1password.plist"
@@ -375,7 +400,8 @@ def run_command(command: List[str], cwd: str = None, check: bool = True) -> Tupl
             cwd=cwd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
+            env=os.environ # Ensure git commands have access to user's environment (e.g. for SSH keys)
         )
         stdout, stderr = process.communicate()
         exit_code = process.returncode
@@ -396,14 +422,144 @@ def command_exists(command: str) -> bool:
     exit_code, _, _ = run_command(["which", command], check=False)
     return exit_code == 0
 
+def check_disk_space(path: str, required_mb: int = 100) -> Tuple[bool, str]:
+    """Check if there's enough disk space at the given path."""
+    try:
+        import shutil
+        stat = shutil.disk_usage(path)
+        available_mb = stat.free / (1024 * 1024)
+        if available_mb < required_mb:
+            return False, f"Insufficient disk space: {available_mb:.1f}MB available, {required_mb}MB required"
+        return True, f"Sufficient disk space: {available_mb:.1f}MB available"
+    except Exception as e:
+        return False, f"Failed to check disk space: {str(e)}"
+
+def check_network_connectivity() -> Tuple[bool, str]:
+    """Check basic network connectivity."""
+    try:
+        # Try to resolve a common DNS name
+        import socket
+        socket.gethostbyname("github.com")
+        return True, "Network connectivity verified"
+    except socket.error:
+        return False, "No network connectivity detected"
+
+def check_git_credentials(repo_url: str) -> Tuple[bool, str]:
+    """Check if Git credentials are properly configured for the repository."""
+    if not repo_url:
+        return True, "No repository configured"
+    
+    # For SSH URLs, check if SSH key is available
+    if repo_url.startswith("git@"):
+        ssh_key_path = os.path.expanduser("~/.ssh/id_rsa")
+        ssh_key_ed25519 = os.path.expanduser("~/.ssh/id_ed25519")
+        if not (os.path.exists(ssh_key_path) or os.path.exists(ssh_key_ed25519)):
+            return False, "No SSH key found. Please set up SSH keys for Git authentication"
+    
+    return True, "Git credentials check passed"
+
+def perform_preflight_checks(config: Dict[str, Any]) -> bool:
+    """Perform pre-flight checks before sync operations."""
+    print_step("Performing pre-flight checks...")
+    
+    checks = [
+        ("Git installation", lambda: (command_exists("git"), "Git is installed" if command_exists("git") else "Git is not installed")),
+        ("Disk space", lambda: check_disk_space(APP_DIR)),
+        ("Network connectivity", lambda: check_network_connectivity()),
+        ("Git credentials", lambda: check_git_credentials(config.get("repository", {}).get("url", "")))
+    ]
+    
+    all_passed = True
+    for check_name, check_func in checks:
+        passed, message = check_func()
+        if passed:
+            print(f"  ✓ {check_name}: {message}")
+        else:
+            print_error(f"  ✗ {check_name}: {message}")
+            all_passed = False
+    
+    return all_passed
+
 def init_repository(url: str, branch: str = "main") -> bool:
     """Initialize a new repository or connect to existing one."""
     logger.info(f"Initializing repository: {url} ({branch})")
-    
-    if os.path.exists(os.path.join(REPO_DIR, ".git")):
-        return connect_existing_repo(url, branch)
+
+    # Validate URL (basic check)
+    if not url.startswith(("http://", "https://", "git@")):
+        logger.error(f"Invalid repository URL format: {url}")
+        print_error(f"Invalid repository URL format. Please use http(s):// or git@ format.")
+        return False
+
+    git_dir = os.path.join(REPO_DIR, ".git")
+
+    if os.path.exists(git_dir):
+        # REPO_DIR exists and is a Git repository
+        logger.info(f"Found existing Git repository in {REPO_DIR}")
+        return connect_existing_repo_flow(url, branch)
+    elif os.path.exists(REPO_DIR) and os.listdir(REPO_DIR):
+        # REPO_DIR exists but is not a Git repository or is an empty .git folder
+        logger.warning(f"{REPO_DIR} exists and is not empty or not a valid Git repository.")
+        if get_yes_no(f"Directory {REPO_DIR} exists and is not a recognized Git repository or is not empty. Do you want to try to use it or re-initialize? (y=use, n=re-initialize)", default=False):
+            # Try to initialize in existing non-empty directory, could fail if .git is corrupted / partial
+            return create_new_repo_flow(url, branch, force_init_in_existing=True)
+        else:
+            if get_yes_no(f"Do you want to delete {REPO_DIR} and start fresh? (This is irreversible)", default=False):
+                try:
+                    shutil.rmtree(REPO_DIR)
+                    logger.info(f"Removed existing directory: {REPO_DIR}")
+                    os.makedirs(REPO_DIR, exist_ok=True) # Recreate after deletion
+                    return create_new_repo_flow(url, branch)
+                except Exception as e:
+                    logger.error(f"Failed to remove directory {REPO_DIR}: {str(e)}")
+                    print_error(f"Could not remove {REPO_DIR}. Please check permissions or remove it manually.")
+                    return False
+            else:
+                print_warning("Repository setup aborted by user.")
+                return False
     else:
-        return create_new_repo(url, branch)
+        # REPO_DIR does not exist or is empty
+        os.makedirs(REPO_DIR, exist_ok=True) # Ensure REPO_DIR exists
+        return create_new_repo_flow(url, branch)
+
+def create_new_repo_flow(url: str, branch: str, force_init_in_existing: bool = False) -> bool:
+    """Handles the flow for creating a new repository."""
+    if not force_init_in_existing:
+        logger.info(f"Creating new repository in {REPO_DIR}")
+    else:
+        logger.info(f"Attempting to initialize Git repository in existing directory {REPO_DIR}")
+
+    if create_new_repo(url, branch):
+        print_success(f"Successfully initialized new repository and connected to {url} on branch {branch}.")
+        return True
+    else:
+        print_error(f"Failed to create and initialize new repository at {url}.")
+        # Clean up REPO_DIR if we created it and initialization failed, to allow retry
+        # But only if it was truly empty before we started, to avoid deleting user data if force_init_in_existing
+        if not force_init_in_existing and os.path.exists(REPO_DIR) and not os.listdir(REPO_DIR):
+             try:
+                shutil.rmtree(REPO_DIR)
+                logger.info(f"Cleaned up {REPO_DIR} after failed initialization.")
+             except Exception as e:
+                logger.warning(f"Failed to clean up {REPO_DIR} after failed init: {e}")
+        return False
+
+def connect_existing_repo_flow(url: str, branch: str) -> bool:
+    """Handles the flow for connecting to an existing repository."""
+    logger.info(f"Attempting to connect to existing repository settings in {REPO_DIR}")
+    # Verify remote URL if possible
+    exit_code, remote_url, _ = run_command(["git", "config", "--get", "remote.origin.url"], cwd=REPO_DIR, check=False)
+    if exit_code == 0 and remote_url.strip() != url:
+        logger.warning(f"Existing repo remote URL '{remote_url.strip()}' differs from desired '{url}'.")
+        if not get_yes_no(f"The existing repository is configured for {remote_url.strip()}. Do you want to update it to {url}?", default=True):
+            print_warning("Repository connection aborted by user.")
+            return False
+    
+    if connect_existing_repo(url, branch):
+        print_success(f"Successfully connected to existing repository {url} on branch {branch}.")
+        return True
+    else:
+        print_error(f"Failed to connect to existing repository {url}.")
+        return False
 
 def create_new_repo(url: str, branch: str) -> bool:
     """Create a new repository and set remote."""
@@ -412,13 +568,22 @@ def create_new_repo(url: str, branch: str) -> bool:
         os.makedirs(REPO_DIR, exist_ok=True)
         
         # Initialize Git repository
-        exit_code, _, _ = run_command(["git", "init"], cwd=REPO_DIR)
+        exit_code, stdout, stderr = run_command(["git", "init"], cwd=REPO_DIR, check=False)
         if exit_code != 0:
-            return False
-        
+            logger.error(f"git init failed: {stderr}")
+            # Check if it's because it's already a git repo, which can happen with force_init_in_existing
+            if "already a git repository" not in stderr.lower() and "reinitialized existing git repository" not in stderr.lower():
+                 print_error(f"Failed to initialize Git repository: {stderr}")
+                 return False
+            logger.info("Git repository already exists or was reinitialized.")
+
         # Set remote
-        exit_code, _, _ = run_command(["git", "remote", "add", "origin", url], cwd=REPO_DIR)
+        # Try removing remote origin first, in case it exists and is wrong (e.g. re-initializing)
+        run_command(["git", "remote", "remove", "origin"], cwd=REPO_DIR, check=False) 
+        exit_code, _, stderr = run_command(["git", "remote", "add", "origin", url], cwd=REPO_DIR, check=False)
         if exit_code != 0:
+            logger.error(f"git remote add origin failed: {stderr}")
+            print_error(f"Failed to set remote origin: {stderr}")
             return False
         
         # Create initial structure
@@ -435,17 +600,59 @@ def create_new_repo(url: str, branch: str) -> bool:
             return False
         
         # Initial commit
-        exit_code, _, _ = run_command(["git", "commit", "-m", "Initial commit"], cwd=REPO_DIR)
+        exit_code, _, stderr = run_command(["git", "commit", "-m", "Initial commit"], cwd=REPO_DIR, check=False)
         if exit_code != 0:
-            return False
+            # It's okay if initial commit fails due to nothing to commit (e.g., if .gitignore exists and ignores everything)
+            # Or if we are re-initializing an existing repo that already has commits.
+            # We check for actual errors.
+            if "nothing to commit" not in stderr.lower() and "initial commit" not in stderr.lower() and "no changes added to commit" not in stderr.lower():
+                logger.error(f"Initial git commit failed: {stderr}")
+                # print_error(f"Failed to make initial commit: {stderr}") # This might be too noisy if it's not a real problem
+                # return False # Decided not to fail hard here, as repo might be usable
         
-        # Create branch if not main
-        if branch != "main":
-            exit_code, _, _ = run_command(["git", "checkout", "-b", branch], cwd=REPO_DIR)
+        # Create branch if not main, and ensure we are on it
+        # Check if branch already exists locally
+        exit_code_local_branch, local_branch_stdout, _ = run_command(["git", "branch", "--list", branch], cwd=REPO_DIR, check=False)
+        # Check if branch already exists remotely (and we fetched it)
+        exit_code_remote_branch, remote_branch_stdout, _ = run_command(["git", "ls-remote", "--heads", "origin", branch], cwd=REPO_DIR, check=False)
+
+        current_branch_code, current_branch_name, _ = run_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=REPO_DIR, check=False)
+        current_branch_name = current_branch_name.strip() if current_branch_code == 0 else ""
+
+        if current_branch_name == branch:
+            logger.info(f"Already on branch '{branch}'.")
+        elif branch in local_branch_stdout:
+            logger.info(f"Switching to existing local branch '{branch}'.")
+            exit_code, _, stderr = run_command(["git", "checkout", branch], cwd=REPO_DIR, check=False)
             if exit_code != 0:
+                logger.error(f"git checkout {branch} failed: {stderr}")
+                print_error(f"Failed to checkout local branch {branch}: {stderr}")
+                return False
+        elif branch in remote_branch_stdout:
+             logger.info(f"Remote branch '{branch}' exists. Checking it out and setting up for tracking.")
+             exit_code, _, stderr = run_command(["git", "checkout", "-t", f"origin/{branch}"], cwd=REPO_DIR, check=False)
+             if exit_code != 0:
+                # Fallback: create local branch and try to push/set upstream later
+                logger.warning(f"Failed to checkout remote branch '{branch}' with tracking: {stderr}. Creating local branch.")
+                exit_code, _, stderr = run_command(["git", "checkout", "-b", branch], cwd=REPO_DIR, check=False)
+                if exit_code != 0:
+                    logger.error(f"git checkout -b {branch} failed: {stderr}")
+                    print_error(f"Failed to create branch {branch}: {stderr}")
+                    return False
+        else:
+            logger.info(f"Creating new branch '{branch}'.")
+            exit_code, _, stderr = run_command(["git", "checkout", "-b", branch], cwd=REPO_DIR, check=False)
+            if exit_code != 0:
+                logger.error(f"git checkout -b {branch} failed: {stderr}")
+                print_error(f"Failed to create branch {branch}: {stderr}")
                 return False
         
-        logger.info(f"Repository created successfully: {url} ({branch})")
+        # Try to push to set upstream, this also verifies credentials early
+        # It's okay if this fails (e.g. new empty repo on GitHub, or branch already exists and is protected)
+        # We are mainly interested in setting upstream for future pulls/pushes.
+        run_command(["git", "push", "--set-upstream", "origin", branch], cwd=REPO_DIR, check=False)
+
+        logger.info(f"Repository setup/verified: {url} (branch: {branch})")
         return True
         
     except Exception as e:
@@ -456,44 +663,78 @@ def connect_existing_repo(url: str, branch: str) -> bool:
     """Connect to existing repository."""
     try:
         # Update remote URL
-        exit_code, _, _ = run_command(["git", "remote", "set-url", "origin", url], cwd=REPO_DIR)
+        exit_code, _, stderr = run_command(["git", "remote", "set-url", "origin", url], cwd=REPO_DIR, check=False)
         if exit_code != 0:
+            logger.error(f"git remote set-url failed: {stderr}")
+            print_error(f"Failed to set remote URL: {stderr}")
             return False
         
         # Fetch
-        exit_code, _, _ = run_command(["git", "fetch"], cwd=REPO_DIR)
+        exit_code, _, stderr = run_command(["git", "fetch", "--all"], cwd=REPO_DIR, check=False)
         if exit_code != 0:
+            logger.error(f"git fetch failed: {stderr}")
+            print_error(f"Failed to fetch from remote: {stderr}. Check connection and repository URL.")
             return False
         
-        # Check if branch exists
-        exit_code, stdout, _ = run_command(["git", "branch", "-a"], cwd=REPO_DIR)
+        # Check if branch exists on remote
+        exit_code, stdout, _ = run_command(["git", "branch", "-r"], cwd=REPO_DIR, check=False) # list remote branches
         if exit_code != 0:
-            return False
-        
-        if f"remotes/origin/{branch}" in stdout:
-            # Checkout branch
-            exit_code, _, _ = run_command(["git", "checkout", branch], cwd=REPO_DIR)
+            logger.error("Failed to list remote branches.")
+            # Don't fail here, maybe proceed and try to checkout/create locally
+
+        remote_branch_exists = f"origin/{branch}" in stdout
+
+        # Check if branch exists locally
+        exit_code_local, local_stdout, _ = run_command(["git", "branch", "--list", branch], cwd=REPO_DIR, check=False)
+        local_branch_exists = branch in local_stdout
+
+        current_branch_code, current_branch_name, _ = run_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=REPO_DIR, check=False)
+        current_branch_name = current_branch_name.strip() if current_branch_code == 0 else ""
+
+        if current_branch_name == branch:
+            logger.info(f"Already on branch '{branch}'. Attempting to set upstream if not set.")
+            run_command(["git", "branch", f"--set-upstream-to=origin/{branch}", branch], cwd=REPO_DIR, check=False)
+        elif local_branch_exists:
+            logger.info(f"Checking out existing local branch '{branch}'.")
+            exit_code, _, stderr = run_command(["git", "checkout", branch], cwd=REPO_DIR, check=False)
             if exit_code != 0:
+                logger.error(f"git checkout {branch} failed: {stderr}")
+                print_error(f"Failed to checkout local branch {branch}: {stderr}")
+                return False
+            # Ensure it tracks the remote if the remote branch exists
+            if remote_branch_exists:
+                 run_command(["git", "branch", f"--set-upstream-to=origin/{branch}", branch], cwd=REPO_DIR, check=False)
+        elif remote_branch_exists:
+            logger.info(f"Checking out remote branch '{branch}' and setting up tracking.")
+            exit_code, _, stderr = run_command(["git", "checkout", "-t", f"origin/{branch}"], cwd=REPO_DIR, check=False)
+            if exit_code != 0:
+                logger.error(f"git checkout -t origin/{branch} failed: {stderr}")
+                print_error(f"Failed to checkout remote branch {branch}: {stderr}")
                 return False
         else:
-            # Create branch
-            exit_code, _, _ = run_command(["git", "checkout", "-b", branch], cwd=REPO_DIR)
+            logger.warning(f"Branch '{branch}' not found locally or on remote 'origin'. Creating new local branch '{branch}'.")
+            logger.warning("You may need to push it to the remote manually if it's intended to be a shared branch.")
+            exit_code, _, stderr = run_command(["git", "checkout", "-b", branch], cwd=REPO_DIR, check=False)
             if exit_code != 0:
+                logger.error(f"git checkout -b {branch} failed: {stderr}")
+                print_error(f"Failed to create new local branch {branch}: {stderr}")
                 return False
         
-        logger.info(f"Connected to repository: {url} ({branch})")
+        logger.info(f"Connected to repository: {url} (branch: {branch})")
         return True
         
     except Exception as e:
         logger.error(f"Unexpected error connecting to repository: {str(e)}")
         return False
 
-def backup_utility(utility_name: str, source_paths: list, exclude_patterns: list = None) -> bool:
+def backup_utility(utility_name: str, source_paths: list, exclude_patterns: list = None, dry_run: bool = False) -> bool:
     """Backup a specific utility's configuration."""
-    logger.info(f"Backing up {utility_name}")
+    logger.info(f"Backing up {utility_name}{' (DRY RUN)' if dry_run else ''}")
     
     backup_path = os.path.join(REPO_DIR, "backups", utility_name)
-    os.makedirs(backup_path, exist_ok=True)
+    
+    if not dry_run:
+        os.makedirs(backup_path, exist_ok=True)
     
     success = True
     files_copied = 0
@@ -510,29 +751,39 @@ def backup_utility(utility_name: str, source_paths: list, exclude_patterns: list
             if os.path.isdir(expanded_path):
                 # Copy directory contents
                 dest_dir = os.path.join(backup_path, os.path.basename(expanded_path))
-                if os.path.exists(dest_dir):
-                    shutil.rmtree(dest_dir)
                 
-                # Use rsync if available for better exclude pattern support
-                if command_exists("rsync") and exclude_patterns:
-                    exclude_args = []
-                    for pattern in exclude_patterns:
-                        exclude_args.extend(["--exclude", pattern])
-                    
-                    exit_code, _, _ = run_command(
-                        ["rsync", "-a"] + exclude_args + [expanded_path + "/", dest_dir]
-                    )
-                    if exit_code != 0:
-                        success = False
+                if dry_run:
+                    logger.info(f"[DRY RUN] Would copy directory {expanded_path} to {dest_dir}")
+                    files_copied += 1
                 else:
-                    # Fallback to shutil
-                    shutil.copytree(expanded_path, dest_dir)
+                    if os.path.exists(dest_dir):
+                        shutil.rmtree(dest_dir)
+                    
+                    # Use rsync if available for better exclude pattern support
+                    if command_exists("rsync") and exclude_patterns:
+                        exclude_args = []
+                        for pattern in exclude_patterns:
+                            exclude_args.extend(["--exclude", pattern])
+                        
+                        exit_code, _, _ = run_command(
+                            ["rsync", "-a", "--delete"] + exclude_args + [expanded_path + "/", dest_dir]
+                        )
+                        if exit_code != 0:
+                            success = False
+                    else:
+                        # Fallback to shutil
+                        shutil.copytree(expanded_path, dest_dir)
             else:
                 # Copy file
-                shutil.copy2(expanded_path, backup_path)
+                if dry_run:
+                    logger.info(f"[DRY RUN] Would copy file {expanded_path} to {backup_path}")
+                    files_copied += 1
+                else:
+                    shutil.copy2(expanded_path, backup_path)
             
-            files_copied += 1
-            logger.debug(f"Copied {expanded_path} to backup")
+            if not dry_run:
+                files_copied += 1
+                logger.debug(f"Copied {expanded_path} to backup")
             
         except Exception as e:
             logger.error(f"Failed to backup {expanded_path}: {str(e)}")
@@ -541,9 +792,36 @@ def backup_utility(utility_name: str, source_paths: list, exclude_patterns: list
     if files_copied == 0:
         logger.warning(f"No files were copied for {utility_name}")
     else:
-        logger.info(f"Backed up {files_copied} files for {utility_name}")
+        logger.info(f"{'Would backup' if dry_run else 'Backed up'} {files_copied} files for {utility_name}")
     
     return success
+
+def create_backup_before_restore(utility_name: str, dest_paths: list) -> Optional[str]:
+    """Create a backup of existing files before restoring."""
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_dir = os.path.join(APP_DIR, "restore_backups", f"{utility_name}_{timestamp}")
+    
+    try:
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        for path in dest_paths:
+            expanded_path = os.path.expanduser(path)
+            if os.path.exists(expanded_path):
+                # Create relative path structure in backup
+                rel_path = os.path.relpath(expanded_path, HOME_DIR)
+                backup_path = os.path.join(backup_dir, rel_path)
+                os.makedirs(os.path.dirname(backup_path), exist_ok=True)
+                
+                if os.path.isdir(expanded_path):
+                    shutil.copytree(expanded_path, backup_path)
+                else:
+                    shutil.copy2(expanded_path, backup_path)
+        
+        logger.info(f"Created backup for {utility_name} at {backup_dir}")
+        return backup_dir
+    except Exception as e:
+        logger.error(f"Failed to create backup for {utility_name}: {str(e)}")
+        return None
 
 def restore_utility(utility_name: str, dest_paths: list) -> bool:
     """Restore a specific utility's configuration."""
@@ -553,6 +831,11 @@ def restore_utility(utility_name: str, dest_paths: list) -> bool:
     if not os.path.exists(backup_path):
         logger.warning(f"No backup found for {utility_name}")
         return False
+    
+    # Create a backup before restoring
+    backup_dir = create_backup_before_restore(utility_name, dest_paths)
+    if backup_dir:
+        print_info(f"Created safety backup at: {backup_dir}")
     
     success = True
     files_restored = 0
@@ -762,43 +1045,86 @@ def perform_sync(config: Dict[str, Any]) -> bool:
     """Perform a complete sync operation."""
     logger.info("Starting sync operation")
     
-    # Pull latest changes from repository
-    if not pull_changes(config["repository"]["branch"]):
-        logger.error("Failed to pull changes from repository")
+    dry_run = config.get("dry_run", False)
+    if dry_run:
+        print_warning("Running in DRY RUN mode - no changes will be made")
+    
+    # Perform pre-flight checks
+    if not perform_preflight_checks(config):
+        logger.error("Pre-flight checks failed")
+        print_error("Pre-flight checks failed. Please resolve the issues above before syncing.")
         return False
+    
+    # Check if repository is configured
+    if not config.get("repository", {}).get("url"):
+        logger.error("No repository configured")
+        print_error("No repository configured. Please run 'mac-sync-wizard setup' first.")
+        return False
+    
+    # Pull latest changes from repository
+    if not dry_run:
+        print_step("Pulling latest changes from repository...")
+        if not pull_changes(config["repository"]["branch"]):
+            logger.error("Failed to pull changes from repository")
+            print_warning("Failed to pull changes. Continuing with local state...")
+            # Don't fail completely - we can still backup local changes
+    else:
+        print_step("[DRY RUN] Would pull latest changes from repository")
     
     # Backup all enabled utilities
     enabled_utilities = get_enabled_utilities(config)
+    if not enabled_utilities:
+        logger.warning("No utilities enabled for sync")
+        print_warning("No utilities are enabled for sync. Enable utilities using 'mac-sync-wizard config'.")
+        return True
+    
+    print_step(f"Backing up {len(enabled_utilities)} enabled utilities...")
+    backup_failures = []
+    
     for utility in enabled_utilities:
         utility_config = config["utilities"].get(utility)
         if not utility_config:
             logger.warning(f"No configuration found for utility: {utility}")
             continue
         
-        backup_utility(
+        print(f"  • {'Would backup' if dry_run else 'Backing up'} {utility}...")
+        if not backup_utility(
             utility,
             utility_config["paths"],
-            utility_config.get("exclude_patterns", [])
-        )
+            utility_config.get("exclude_patterns", []),
+            dry_run=dry_run
+        ):
+            backup_failures.append(utility)
+    
+    if backup_failures:
+        print_warning(f"Failed to backup: {', '.join(backup_failures)}")
     
     # Commit and push changes
-    if config["sync"]["auto_commit"]:
+    if config["sync"]["auto_commit"] and not dry_run:
+        print_step("Committing and pushing changes...")
         commit_message = config["sync"]["commit_message_template"].format(
             date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             changes=f"{len(enabled_utilities)} utilities"
         )
         if not commit_changes(commit_message):
             logger.error("Failed to commit changes")
+            print_warning("Failed to commit changes. Your backups are saved locally.")
             return False
         
         if not push_changes(config["repository"]["branch"]):
             logger.error("Failed to push changes")
-            return False
+            print_warning("Failed to push changes. Your changes are committed locally.")
+            print_info("You can try pushing manually later with: cd ~/.mac-sync-wizard/repo && git push")
+            # Don't fail - changes are at least committed locally
+    elif config["sync"]["auto_commit"] and dry_run:
+        print_step("[DRY RUN] Would commit and push changes")
     
     # Update last sync time
-    update_last_sync_time()
+    if not dry_run:
+        update_last_sync_time()
     
-    logger.info("Sync operation completed successfully")
+    logger.info(f"Sync operation completed successfully{' (DRY RUN)' if dry_run else ''}")
+    print_success(f"Successfully {'would sync' if dry_run else 'synced'} {len(enabled_utilities) - len(backup_failures)} utilities")
     return True
 
 def get_sync_status(config: Dict[str, Any]) -> Dict[str, Any]:
@@ -921,77 +1247,221 @@ def uninstall_launch_agent() -> bool:
 # Setup Wizard
 # -----------------------------------------------------------------------------
 
+def save_setup_progress(step: str, data: Dict[str, Any]) -> None:
+    """Save setup progress to allow resuming."""
+    progress_file = os.path.join(CONFIG_DIR, ".setup_progress.json")
+    try:
+        progress = {}
+        if os.path.exists(progress_file):
+            with open(progress_file, 'r') as f:
+                progress = json.load(f)
+        
+        progress[step] = {
+            "completed": True,
+            "timestamp": datetime.datetime.now().isoformat(),
+            "data": data
+        }
+        
+        with open(progress_file, 'w') as f:
+            json.dump(progress, f, indent=2)
+    except Exception as e:
+        logger.warning(f"Failed to save setup progress: {str(e)}")
+
+def load_setup_progress() -> Dict[str, Any]:
+    """Load setup progress."""
+    progress_file = os.path.join(CONFIG_DIR, ".setup_progress.json")
+    try:
+        if os.path.exists(progress_file):
+            with open(progress_file, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.warning(f"Failed to load setup progress: {str(e)}")
+    return {}
+
+def clear_setup_progress() -> None:
+    """Clear setup progress after successful completion."""
+    progress_file = os.path.join(CONFIG_DIR, ".setup_progress.json")
+    try:
+        if os.path.exists(progress_file):
+            os.remove(progress_file)
+    except Exception as e:
+        logger.warning(f"Failed to clear setup progress: {str(e)}")
+
 def run_setup_wizard() -> bool:
     """Run the setup wizard."""
     print_header("Mac Sync Wizard Setup")
     
     print("Welcome to Mac Sync Wizard! This wizard will guide you through the setup process.")
-    print("Let's get started by configuring your Git repository for syncing.")
+    print("This tool will help you synchronize your application settings and configurations using a Git repository.")
+    print("Please ensure you have Git installed and configured on your system.")
     
-    # Load or create config
+    if not command_exists("git"):
+        print_error("Git is not installed or not found in your PATH. Mac Sync Wizard requires Git to function.")
+        print_error("Please install Git and ensure it's accessible from your terminal, then run the setup again.")
+        return False
+    
     config = load_config()
+    initial_config_exists = os.path.exists(CONFIG_PATH)
     
-    # Repository setup
-    repo_options = [
-        ("new", "Create a new repository"),
-        ("existing", "Connect to an existing repository"),
-        ("skip", "Skip repository setup for now")
-    ]
-    
-    repo_choice = get_menu_choice(repo_options, "Repository Setup")
-    
-    if repo_choice == "new":
-        setup_new_repository(config)
-    elif repo_choice == "existing":
-        connect_existing_repository(config)
+    # Check for interrupted setup
+    progress = load_setup_progress()
+    if progress and not initial_config_exists:
+        if get_yes_no("It looks like a previous setup was interrupted. Would you like to resume?", default=True):
+            print_info("Resuming from previous setup progress...")
+        else:
+            clear_setup_progress()
+            progress = {}
+
+    if initial_config_exists:
+        print_warning("Existing configuration found. You can modify your settings.")
     else:
-        print_warning("Repository setup skipped. You can configure it later with: mac-sync-wizard config")
-    
+        print_step("No existing configuration found. Let's set up from scratch.")
+
+    # Repository setup
+    if "repository" not in progress:
+        print_step("Step 1 of 4: Repository Configuration")
+        if config["repository"]["url"]:
+            print(f"Current repository: {config['repository']['url']} (branch: {config['repository']['branch']})")
+            if not get_yes_no("Do you want to reconfigure the repository?", default=False):
+                print_info("Skipping repository reconfiguration.")
+                repo_setup_success = True
+            else:
+                repo_setup_success = configure_repository_wizard_step(config)
+        else:
+            repo_setup_success = configure_repository_wizard_step(config)
+
+        if not repo_setup_success:
+            print_error("Repository setup failed or was skipped by the user and no prior valid configuration exists. Aborting setup.")
+            return False
+        
+        save_config(config)
+        save_setup_progress("repository", {"url": config["repository"]["url"], "branch": config["repository"]["branch"]})
+    else:
+        print_info("Repository configuration already completed in previous session.")
+        repo_setup_success = True
+
     # Utility selection
-    select_utilities(config)
-    
+    if "utilities" not in progress:
+        print_step("Step 2 of 4: Utility Selection")
+        if not select_utilities(config):
+            print_error("Utility selection encountered an issue. Please review your choices.")
+        
+        save_config(config)
+        save_setup_progress("utilities", {"enabled": get_enabled_utilities(config)})
+    else:
+        print_info("Utility selection already completed in previous session.")
+
     # Sync configuration
-    configure_sync(config)
-    
+    if "sync" not in progress:
+        print_step("Step 3 of 4: Sync Behavior")
+        if not configure_sync(config):
+            print_error("Sync behavior configuration failed. Using default sync settings.")
+        
+        save_config(config)
+        save_setup_progress("sync", {"frequency": config["sync"]["frequency"], "auto_commit": config["sync"]["auto_commit"]})
+    else:
+        print_info("Sync configuration already completed in previous session.")
+
     # Notification preferences
-    configure_notifications(config)
+    if "notifications" not in progress:
+        print_step("Step 4 of 4: Notification Preferences")
+        if not configure_notifications(config):
+            print_error("Notification preference configuration failed. Using default notification settings.")
+        
+        save_setup_progress("notifications", {"level": config["notifications"]["level"]})
+    else:
+        print_info("Notification configuration already completed in previous session.")
+
+    # Final save of all configurations
+    if not save_config(config):
+        print_error(f"Failed to save the final configuration. Please check permissions for {CONFIG_PATH}")
+        return False
     
-    # Save config
-    save_config(config)
-    
-    # Setup complete
+    # Clear setup progress on successful completion
+    clear_setup_progress()
+
     print_header("Setup Complete!")
     
-    print("Mac Sync Wizard has been successfully set up on this machine.")
-    print("You can now use the following commands:")
-    print("  mac-sync-wizard sync    - Perform a manual sync")
-    print("  mac-sync-wizard config  - Configure sync settings")
-    print("  mac-sync-wizard status  - Check sync status")
+    print("Mac Sync Wizard has been successfully configured on this machine.")
+    print(f"Your settings are stored in: {CONFIG_PATH}")
+    print(f"Your synchronization repository is at: {REPO_DIR}")
+    print("\nYou can now use the following commands:")
+    print(f"  {sys.argv[0]} sync    - Perform a manual sync")
+    print(f"  {sys.argv[0]} config  - Modify your configuration")
+    print(f"  {sys.argv[0]} status  - Check sync status")
     
-    # Ask if user wants to install the LaunchAgent
-    if get_yes_no("Would you like to install the background sync service?"):
-        if install_launch_agent():
-            print_success("Background sync service installed successfully")
+    if config["sync"]["frequency"] > 0:
+        print_step("Background Sync Service (LaunchAgent)")
+        if get_yes_no("Would you like to install/update the background sync service (LaunchAgent) for automatic syncing?", default=True):
+            if install_launch_agent(): # install_launch_agent should be robust
+                print_success("Background sync service (LaunchAgent) installed/updated successfully.")
+            else:
+                print_error("Failed to install/update background sync service. You can try again later using `install` command.")
         else:
-            print_error("Failed to install background sync service")
-    
+            print_warning("Background sync service not installed. You will need to run syncs manually.")
+    else:
+        print_info("Automatic background sync is disabled (frequency set to manual). Skipping LaunchAgent setup.")
+        # Check if an old one exists and offer to remove it
+        plist_path = os.path.expanduser("~/Library/LaunchAgents/com.mac-sync-wizard.plist")
+        if os.path.exists(plist_path):
+            if get_yes_no("Found an existing background sync service LaunchAgent, but automatic sync is disabled. Would you like to remove the old LaunchAgent?", default=True):
+                if uninstall_launch_agent():
+                    print_success("Successfully removed old background sync service.")
+                else:
+                    print_error("Failed to remove old background sync service.")
+
+    print_success("Setup process is complete. Enjoy using Mac Sync Wizard!")
     return True
+
+def configure_repository_wizard_step(config: Dict[str, Any]) -> bool:
+    """Specific part of the wizard for configuring the repository."""
+    repo_options = [
+        ("new", "Set up a new Git repository for sync (recommended for first time)"),
+        ("existing", "Connect to an existing Git repository (if you already have one)"),
+    ]
+    if config["repository"]["url"]:
+         repo_options.append(("skip", "Keep current repository settings and continue"))
+    else:
+        repo_options.append(("skip", "Skip repository setup for now (not recommended, sync will not work)"))
+
+    repo_choice = get_menu_choice(repo_options, "Repository Setup Options")
+
+    success = False
+    if repo_choice == "new":
+        success = setup_new_repository(config)
+    elif repo_choice == "existing":
+        success = connect_existing_repository(config)
+    elif repo_choice == "skip":
+        if config["repository"]["url"]:
+            print_info("Keeping existing repository configuration.")
+            return True # Considered success as user chose to keep existing valid config
+        else:
+            print_warning("Repository setup skipped. Syncing will not function until a repository is configured.")
+            return False # Not a success if no repo is configured
+    return success
 
 def setup_new_repository(config: Dict[str, Any]) -> bool:
     """Set up a new Git repository."""
     print_header("New Repository Setup")
     
-    # Get repository URL
-    repo_url = get_input(
-        "Enter the URL for your new repository (e.g., https://github.com/username/mac-sync.git)"
-    )
-    
-    # Get branch name
-    branch = get_input("Enter the branch name", "main")
-    
-    # Get authentication type
+    repo_url = ""
+    while not repo_url:
+        repo_url = get_input(
+            "Enter the URL for your new repository (e.g., https://github.com/user/repo.git or git@host:user/repo.git)"
+        ).strip()
+        if not repo_url:
+            print_warning("Repository URL cannot be empty.")
+        elif not (repo_url.startswith(("http://", "https://")) or repo_url.startswith("git@")):
+            print_warning("Invalid URL format. It should start with http(s):// or git@")
+            repo_url = "" # Reset to ask again
+
+    branch = get_input("Enter the branch name (e.g., main, master)", "main").strip()
+    if not branch:
+        branch = "main" # Default if user enters empty string
+        print_warning("Branch name was empty, defaulted to 'main'.")
+
     auth_type = get_choice(
-        "Select authentication type",
+        "Select authentication type (ssh is recommended for private repos)",
         ["ssh", "https"],
         "ssh"
     )
@@ -1003,23 +1473,30 @@ def setup_new_repository(config: Dict[str, Any]) -> bool:
     
     # Initialize repository
     if init_repository(repo_url, branch):
-        print_success(f"Repository configuration saved: {repo_url} ({branch}) using {auth_type}")
+        # print_success(f"Repository configuration saved: {repo_url} ({branch}) using {auth_type}") # Redundant with init_repository output
         return True
     else:
-        print_error(f"Failed to initialize repository: {repo_url}")
+        # print_error(f"Failed to initialize repository: {repo_url}") # Redundant with init_repository output
         return False
 
 def connect_existing_repository(config: Dict[str, Any]) -> bool:
     """Connect to an existing Git repository."""
     print_header("Connect to Existing Repository")
     
-    # Get repository URL
-    repo_url = get_input("Enter the URL of your existing repository")
-    
-    # Get branch name
-    branch = get_input("Enter the branch name", "main")
-    
-    # Get authentication type
+    repo_url = ""
+    while not repo_url:
+        repo_url = get_input("Enter the URL of your existing repository").strip()
+        if not repo_url:
+            print_warning("Repository URL cannot be empty.")
+        elif not (repo_url.startswith(("http://", "https://")) or repo_url.startswith("git@")):
+            print_warning("Invalid URL format. It should start with http(s):// or git@")
+            repo_url = "" # Reset to ask again
+
+    branch = get_input("Enter the branch name", "main").strip()
+    if not branch:
+        branch = "main"
+        print_warning("Branch name was empty, defaulted to 'main'.")
+
     auth_type = get_choice(
         "Select authentication type",
         ["ssh", "https"],
@@ -1031,12 +1508,12 @@ def connect_existing_repository(config: Dict[str, Any]) -> bool:
     config["repository"]["branch"] = branch
     config["repository"]["auth_type"] = auth_type
     
-    # Initialize repository
-    if init_repository(repo_url, branch):
-        print_success(f"Connected to repository: {repo_url} ({branch}) using {auth_type}")
+    # Connect to repository
+    if init_repository(repo_url, branch): # init_repository now handles both new and existing
+        # print_success(f"Connected to repository: {repo_url} ({branch}) using {auth_type}") # Redundant
         return True
     else:
-        print_error(f"Failed to connect to repository: {repo_url}")
+        # print_error(f"Failed to connect to repository: {repo_url}") # Redundant
         return False
 
 def select_utilities(config: Dict[str, Any]) -> bool:
@@ -1245,6 +1722,10 @@ def sync_command(args):
     # Load config
     config = load_config()
     
+    if args.dry_run:
+        print_warning("DRY RUN MODE: No changes will be made")
+        config["dry_run"] = True
+    
     if args.daemon:
         logger.info("Running in daemon mode")
         # In a real implementation, this would start a daemon process
@@ -1255,7 +1736,10 @@ def sync_command(args):
         
         if success:
             logger.info("Sync completed successfully")
-            print_success("Sync completed successfully")
+            if not args.dry_run:
+                print_success("Sync completed successfully")
+            else:
+                print_success("Dry run completed successfully (no changes were made)")
         else:
             logger.error("Sync failed")
             print_error("Sync failed. Check logs for details.")
@@ -1347,12 +1831,77 @@ def help_command(args):
     print("\nCommands:")
     print("  setup     - Run the setup wizard")
     print("  sync      - Perform a manual sync")
+    print("  restore   - Restore configurations from repository") 
     print("  config    - Configure sync settings")
     print("  status    - Check sync status")
     print("  install   - Install or uninstall the background service")
     print("  help      - Show this help information")
+    print("\nCommon workflows:")
+    print("  First time setup:  mac-sync-wizard setup")
+    print("  Daily sync:        mac-sync-wizard sync")
+    print("  New machine:       mac-sync-wizard setup && mac-sync-wizard restore")
     print("\nFor more information, see the README.md file or visit:")
     print("https://github.com/username/mac-sync-wizard")
+
+def restore_command(args):
+    """Restore configurations from the repository"""
+    logger.info("Starting restore operation")
+    
+    config = load_config()
+    
+    if not config.get("repository", {}).get("url"):
+        print_error("No repository configured. Please run 'mac-sync-wizard setup' first.")
+        return
+    
+    # Perform pre-flight checks
+    if not perform_preflight_checks(config):
+        print_error("Pre-flight checks failed. Please resolve the issues above before restoring.")
+        return
+    
+    # Pull latest changes
+    print_step("Pulling latest changes from repository...")
+    if not pull_changes(config["repository"]["branch"]):
+        print_error("Failed to pull changes from repository.")
+        if not get_yes_no("Continue with local repository state?", default=False):
+            return
+    
+    # Get list of utilities to restore
+    if args.utility:
+        # Restore specific utility
+        if args.utility not in config["utilities"]:
+            print_error(f"Unknown utility: {args.utility}")
+            print_info(f"Available utilities: {', '.join(config['utilities'].keys())}")
+            return
+        
+        utilities_to_restore = [args.utility]
+    else:
+        # Restore all enabled utilities
+        utilities_to_restore = get_enabled_utilities(config)
+        if not utilities_to_restore:
+            print_warning("No utilities are enabled. Enable utilities using 'mac-sync-wizard config'.")
+            return
+    
+    print_warning(f"This will restore configurations for: {', '.join(utilities_to_restore)}")
+    print_warning("Your current configurations will be backed up before restoring.")
+    
+    if not get_yes_no("Do you want to continue?", default=False):
+        print_info("Restore cancelled.")
+        return
+    
+    # Restore utilities
+    restore_failures = []
+    for utility in utilities_to_restore:
+        utility_config = config["utilities"][utility]
+        print(f"  • Restoring {utility}...")
+        
+        if not restore_utility(utility, utility_config["paths"]):
+            restore_failures.append(utility)
+    
+    if restore_failures:
+        print_error(f"Failed to restore: {', '.join(restore_failures)}")
+        print_info("Check the logs for more details.")
+    else:
+        print_success(f"Successfully restored {len(utilities_to_restore)} utilities")
 
 # -----------------------------------------------------------------------------
 # Main Entry Point
@@ -1375,6 +1924,7 @@ def main():
     # Sync command
     sync_parser = subparsers.add_parser("sync", help="Perform a manual sync")
     sync_parser.add_argument("--daemon", action="store_true", help="Run as daemon")
+    sync_parser.add_argument("--dry-run", action="store_true", help="Show what would be done without making changes")
     
     # Config command
     config_parser = subparsers.add_parser("config", help="Configure sync settings")
@@ -1394,6 +1944,10 @@ def main():
     # Help command
     help_parser = subparsers.add_parser("help", help="Show help information")
     
+    # Restore command
+    restore_parser = subparsers.add_parser("restore", help="Restore configurations from repository")
+    restore_parser.add_argument("--utility", help="Restore specific utility only")
+    
     args = parser.parse_args()
     
     # If no command is specified, show help
@@ -1406,6 +1960,8 @@ def main():
         setup_command(args)
     elif args.command == "sync":
         sync_command(args)
+    elif args.command == "restore":
+        restore_command(args)
     elif args.command == "config":
         config_command(args)
     elif args.command == "status":
