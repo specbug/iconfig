@@ -259,6 +259,15 @@ UTILITY_CONFIGS = {
         ],
         "exclude_patterns": []
     },
+    "shell": {
+        "enabled": True,
+        "paths": [
+            "~/.iconfig/shell/"  # Custom directory for organized shell configs
+        ],
+        "exclude_patterns": [],
+        "description": "Shell aliases, functions, and custom configurations",
+        "setup_on_enable": True  # Special flag to run setup when enabled
+    },
     
     # Installation-only utilities (disabled by default, not synced)
     "arc": {
@@ -2002,6 +2011,14 @@ def select_utilities(config: Dict[str, Any]) -> bool:
         if utility == "fonts" and enabled:
             if get_yes_no("\nWould you like to configure custom font selection?", default=True):
                 configure_fonts(config["utilities"]["fonts"])
+        
+        # Special setup for shell aliases
+        if utility == "shell" and enabled:
+            if get_yes_no("\nWould you like to extract and sync your existing shell aliases and functions?", default=True):
+                if setup_shell_sync():
+                    print_success("Shell aliases and functions extracted and ready to sync!")
+                else:
+                    print_warning("Shell setup skipped - you can manually add items to ~/.iconfig/shell/aliases.sh")
     
     # Keep installation-only utilities disabled
     for utility in installation_only:
@@ -2162,6 +2179,215 @@ def interactive_font_selector(existing_selections: List[str] = None) -> List[str
             print_error("Invalid choice")
     
     return sorted(list(selected_fonts))
+
+def setup_shell_sync() -> bool:
+    """Extract existing shell aliases and set up syncing."""
+    print_header("Shell Alias Setup")
+    
+    shell_config_dir = os.path.expanduser("~/.iconfig/shell")
+    os.makedirs(shell_config_dir, exist_ok=True)
+    
+    # Find shell configuration files
+    rc_files = []
+    potential_files = [
+        "~/.bashrc", "~/.bash_profile", "~/.zshrc", 
+        "~/.aliases", "~/.bash_aliases"
+    ]
+    
+    for file_path in potential_files:
+        expanded_path = os.path.expanduser(file_path)
+        if os.path.exists(expanded_path):
+            rc_files.append(expanded_path)
+    
+    if not rc_files:
+        print_warning("No shell configuration files found!")
+        return False
+    
+    print_info(f"Found {len(rc_files)} shell configuration files")
+    
+    # Extract aliases and functions
+    print_step("Extracting existing aliases and functions...")
+    aliases = []
+    functions = []
+    
+    for rc_file in rc_files:
+        try:
+            with open(rc_file, 'r') as f:
+                lines = f.readlines()
+                i = 0
+                while i < len(lines):
+                    line = lines[i].strip()
+                    
+                    # Match alias definitions
+                    if line.startswith('alias '):
+                        aliases.append(lines[i].rstrip())
+                        i += 1
+                    
+                    # Match function definitions (name() { ... })
+                    elif '()' in line and '{' in line:
+                        # Found a function definition on one line
+                        func_lines = [lines[i].rstrip()]
+                        
+                        # Check if it's a one-liner
+                        if '}' in line:
+                            functions.append('\n'.join(func_lines))
+                        else:
+                            # Multi-line function, collect until closing }
+                            i += 1
+                            brace_count = 1
+                            while i < len(lines) and brace_count > 0:
+                                func_lines.append(lines[i].rstrip())
+                                brace_count += lines[i].count('{') - lines[i].count('}')
+                                i += 1
+                            functions.append('\n'.join(func_lines))
+                        i += 1
+                    
+                    # Match function keyword style (function name { ... })
+                    elif line.startswith('function '):
+                        func_lines = [lines[i].rstrip()]
+                        i += 1
+                        
+                        # Look for opening brace
+                        while i < len(lines) and '{' not in ''.join(func_lines):
+                            func_lines.append(lines[i].rstrip())
+                            i += 1
+                        
+                        # Now collect until closing brace
+                        if i < len(lines):
+                            brace_count = ''.join(func_lines).count('{') - ''.join(func_lines).count('}')
+                            while i < len(lines) and brace_count > 0:
+                                func_lines.append(lines[i].rstrip())
+                                brace_count += lines[i].count('{') - lines[i].count('}')
+                                i += 1
+                            functions.append('\n'.join(func_lines))
+                    else:
+                        i += 1
+                        
+        except Exception as e:
+            logger.warning(f"Failed to read {rc_file}: {str(e)}")
+    
+    total_items = len(aliases) + len(functions)
+    print_success(f"Found {len(aliases)} aliases and {len(functions)} functions")
+    
+    # Create aliases file
+    aliases_file = os.path.join(shell_config_dir, "aliases.sh")
+    with open(aliases_file, 'w') as f:
+        f.write("#!/bin/bash\n")
+        f.write("# Synced shell aliases and functions from iconfig\n")
+        f.write("# This file is automatically synced across your machines\n\n")
+        
+        if aliases:
+            f.write("# ============================================\n")
+            f.write("# Aliases\n")
+            f.write("# ============================================\n\n")
+            
+            for alias in aliases:
+                f.write(f"{alias}\n")
+            f.write("\n")
+        
+        if functions:
+            f.write("# ============================================\n")
+            f.write("# Functions\n")
+            f.write("# ============================================\n\n")
+            
+            for func in functions:
+                f.write(f"{func}\n\n")
+    
+    os.chmod(aliases_file, 0o755)
+    
+    # Create local.sh template
+    local_file = os.path.join(shell_config_dir, "local.sh")
+    with open(local_file, 'w') as f:
+        f.write("#!/bin/bash\n")
+        f.write("# Local machine-specific aliases and configurations\n")
+        f.write("# This file is NOT synced - use it for machine-specific settings\n\n")
+        f.write("# Example:\n")
+        f.write("# alias work-vpn='sudo openconnect vpn.company.com'\n")
+        f.write("# export WORK_DIR=\"/Users/me/work\"\n")
+    
+    # Create .gitignore
+    gitignore_file = os.path.join(shell_config_dir, ".gitignore")
+    with open(gitignore_file, 'w') as f:
+        f.write("# Local configurations (machine-specific, not synced)\n")
+        f.write("local.sh\n")
+        f.write("*.local\n\n")
+        f.write("# Temporary files\n")
+        f.write("*.tmp\n")
+        f.write("*.swp\n")
+        f.write("*~\n\n")
+        f.write("# OS files\n")
+        f.write(".DS_Store\n")
+    
+    # Create loader script
+    loader_file = os.path.join(shell_config_dir, "load.sh")
+    with open(loader_file, 'w') as f:
+        f.write("#!/bin/bash\n")
+        f.write("# iconfig Shell Configuration Loader\n")
+        f.write("# Source this file from your .bashrc/.zshrc\n\n")
+        f.write("# Get the directory of this script\n")
+        f.write("SHELL_CONFIG_DIR=\"$(dirname \"${BASH_SOURCE[0]:-$0}\")\"\n\n")
+        f.write("# Load synced aliases\n")
+        f.write("[ -f \"$SHELL_CONFIG_DIR/aliases.sh\" ] && source \"$SHELL_CONFIG_DIR/aliases.sh\"\n\n")
+        f.write("# Load any local overrides (not synced)\n")
+        f.write("[ -f \"$SHELL_CONFIG_DIR/local.sh\" ] && source \"$SHELL_CONFIG_DIR/local.sh\"\n")
+    
+    os.chmod(loader_file, 0o755)
+    
+    # Show preview
+    if aliases or functions:
+        print_step("Preview of extracted items:")
+        
+        # Show first few aliases
+        if aliases:
+            print("  Aliases:")
+            for alias in aliases[:3]:
+                print(f"    {alias}")
+            if len(aliases) > 3:
+                print(f"    ... and {len(aliases) - 3} more aliases")
+        
+        # Show first few functions
+        if functions:
+            print("  Functions:")
+            for func in functions[:2]:
+                # Show just the first line of each function
+                first_line = func.split('\n')[0]
+                print(f"    {first_line}")
+            if len(functions) > 2:
+                print(f"    ... and {len(functions) - 2} more functions")
+    
+    # Setup auto-loading
+    current_shell = os.path.basename(os.environ.get('SHELL', ''))
+    rc_file = None
+    
+    if current_shell == 'zsh':
+        rc_file = os.path.expanduser("~/.zshrc")
+    elif current_shell == 'bash':
+        rc_file = os.path.expanduser("~/.bashrc")
+    
+    if rc_file and os.path.exists(rc_file):
+        # Check if loader already exists
+        loader_line = '[ -f "$HOME/.iconfig/shell/load.sh" ] && source "$HOME/.iconfig/shell/load.sh"'
+        
+        with open(rc_file, 'r') as f:
+            content = f.read()
+        
+        if "iconfig/shell/load.sh" not in content:
+            if get_yes_no(f"\nAdd shell alias loader to {rc_file}?", default=True):
+                # Backup RC file
+                backup_path = f"{rc_file}.backup.{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                shutil.copy2(rc_file, backup_path)
+                
+                with open(rc_file, 'a') as f:
+                    f.write("\n# iconfig shell configuration loader\n")
+                    f.write(f"{loader_line}\n")
+                
+                print_success(f"Added loader to {rc_file}")
+                print_info(f"Backup saved to {backup_path}")
+                print_info("Run 'source ~/.zshrc' or restart your shell to load aliases")
+        else:
+            print_info("Shell loader already configured")
+    
+    return True
 
 def configure_fonts(fonts_config: Dict[str, Any]) -> None:
     """Configure font sync settings."""
