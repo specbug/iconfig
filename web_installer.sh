@@ -79,15 +79,34 @@ else
     exit 1
 fi
 
+# Verify required files exist
+if [ ! -f "iconfig.py" ]; then
+    echo -e "${RED}Error: iconfig.py not found in extracted files${NC}"
+    ls -la
+    exit 1
+fi
+
+if [ ! -f "install.sh" ]; then
+    echo -e "${RED}Error: install.sh not found in extracted files${NC}"
+    ls -la
+    exit 1
+fi
+
 # Make install script executable
 chmod +x install.sh
 
-# Run the install script
+# Run the install script from the correct directory
 echo -e "${BLUE}Running installer...${NC}"
+echo -e "${YELLOW}Current directory: $(pwd)${NC}"
+echo -e "${YELLOW}Files in directory:${NC}"
+ls -la
+
+# Run install.sh which will find iconfig.py in the current directory
 ./install.sh
 
 # Clean up
 echo -e "${BLUE}Cleaning up temporary files...${NC}"
+# Make sure we're not in the directory we're about to delete
 cd "$HOME"
 rm -rf "$INSTALL_DIR"
 
