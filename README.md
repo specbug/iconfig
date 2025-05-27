@@ -33,7 +33,7 @@ chmod +x install.sh
 ./install.sh
 ```
 
-### First Time Setup
+### First Time Setup (Creating a new sync repository)
 
 ```bash
 mac-sync-wizard setup
@@ -45,12 +45,19 @@ mac-sync-wizard setup
 mac-sync-wizard sync
 ```
 
-### Restore on New Machine
+### New Machine Setup (One command!)
 
 ```bash
-mac-sync-wizard setup
-mac-sync-wizard restore
+curl -fsSL https://raw.githubusercontent.com/specbug/iconfig/main/web_installer.sh | bash
 ```
+
+When prompted, answer "Yes" to new machine setup. The installer will:
+1. Install prerequisites (Homebrew, Git LFS)
+2. Ask for your existing repository URL
+3. Configure iconfig
+4. Automatically restore all your configurations
+
+That's it! One command to fully set up a new Mac.
 
 ## Supported Applications
 
