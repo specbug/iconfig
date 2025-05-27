@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e # Exit immediately if a command exits with a non-zero status.
+
 # Mac Sync Wizard Simple Installation Script
 # This script installs the Mac Sync Wizard as a single file with no module dependencies
 
