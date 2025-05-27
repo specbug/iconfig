@@ -299,7 +299,8 @@ DEFAULT_CONFIG = {
     "sync": {
         "frequency": 21600,  # 6 hours in seconds
         "auto_commit": True,
-        "commit_message_template": "Auto-sync: {date} - {changes}"
+        "commit_message_template": "Auto-sync: {date} - {changes}",
+        "pull_strategy": "rebase"  # "rebase" or "merge"
     },
     "notifications": {
         "level": "errors_only",  # all, errors_only, none
@@ -589,6 +590,13 @@ def create_new_repo(url: str, branch: str) -> bool:
             print_error(f"Failed to set remote origin: {stderr}")
             return False
         
+        # Fetch from remote to get all branches
+        print_step("Fetching from remote repository...")
+        exit_code, _, stderr = run_command(["git", "fetch", "origin"], cwd=REPO_DIR, check=False)
+        if exit_code != 0:
+            logger.warning(f"git fetch failed: {stderr}. This might be a new empty repository.")
+            # Don't fail here - might be a new empty repo
+        
         # Create initial structure
         for dir_name in ["backups", "config", "logs"]:
             os.makedirs(os.path.join(REPO_DIR, dir_name), exist_ok=True)
@@ -613,17 +621,21 @@ def create_new_repo(url: str, branch: str) -> bool:
                 # print_error(f"Failed to make initial commit: {stderr}") # This might be too noisy if it's not a real problem
                 # return False # Decided not to fail hard here, as repo might be usable
         
-        # Create branch if not main, and ensure we are on it
+        # Check if branch exists on remote after fetch
+        exit_code, remote_branches, _ = run_command(["git", "branch", "-r"], cwd=REPO_DIR, check=False)
+        remote_branch_exists = f"origin/{branch}" in remote_branches if exit_code == 0 else False
+        
         # Check if branch already exists locally
         exit_code_local_branch, local_branch_stdout, _ = run_command(["git", "branch", "--list", branch], cwd=REPO_DIR, check=False)
-        # Check if branch already exists remotely (and we fetched it)
-        exit_code_remote_branch, remote_branch_stdout, _ = run_command(["git", "ls-remote", "--heads", "origin", branch], cwd=REPO_DIR, check=False)
 
         current_branch_code, current_branch_name, _ = run_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=REPO_DIR, check=False)
         current_branch_name = current_branch_name.strip() if current_branch_code == 0 else ""
 
         if current_branch_name == branch:
             logger.info(f"Already on branch '{branch}'.")
+            # Try to set upstream if remote branch exists
+            if remote_branch_exists:
+                run_command(["git", "branch", f"--set-upstream-to=origin/{branch}", branch], cwd=REPO_DIR, check=False)
         elif branch in local_branch_stdout:
             logger.info(f"Switching to existing local branch '{branch}'.")
             exit_code, _, stderr = run_command(["git", "checkout", branch], cwd=REPO_DIR, check=False)
@@ -631,17 +643,22 @@ def create_new_repo(url: str, branch: str) -> bool:
                 logger.error(f"git checkout {branch} failed: {stderr}")
                 print_error(f"Failed to checkout local branch {branch}: {stderr}")
                 return False
-        elif branch in remote_branch_stdout:
-             logger.info(f"Remote branch '{branch}' exists. Checking it out and setting up for tracking.")
-             exit_code, _, stderr = run_command(["git", "checkout", "-t", f"origin/{branch}"], cwd=REPO_DIR, check=False)
-             if exit_code != 0:
-                # Fallback: create local branch and try to push/set upstream later
-                logger.warning(f"Failed to checkout remote branch '{branch}' with tracking: {stderr}. Creating local branch.")
-                exit_code, _, stderr = run_command(["git", "checkout", "-b", branch], cwd=REPO_DIR, check=False)
+            # Set upstream if remote branch exists
+            if remote_branch_exists:
+                run_command(["git", "branch", f"--set-upstream-to=origin/{branch}", branch], cwd=REPO_DIR, check=False)
+        elif remote_branch_exists:
+            logger.info(f"Remote branch 'origin/{branch}' exists. Checking it out...")
+            # Create local branch from remote
+            exit_code, _, stderr = run_command(["git", "checkout", "-b", branch, f"origin/{branch}"], cwd=REPO_DIR, check=False)
+            if exit_code != 0:
+                # Maybe branch already exists locally, try just checking it out
+                exit_code, _, stderr = run_command(["git", "checkout", branch], cwd=REPO_DIR, check=False)
                 if exit_code != 0:
-                    logger.error(f"git checkout -b {branch} failed: {stderr}")
-                    print_error(f"Failed to create branch {branch}: {stderr}")
+                    logger.error(f"Failed to checkout branch {branch}: {stderr}")
+                    print_error(f"Failed to checkout branch {branch}: {stderr}")
                     return False
+                # Set upstream
+                run_command(["git", "branch", f"--set-upstream-to=origin/{branch}", branch], cwd=REPO_DIR, check=False)
         else:
             logger.info(f"Creating new branch '{branch}'.")
             exit_code, _, stderr = run_command(["git", "checkout", "-b", branch], cwd=REPO_DIR, check=False)
@@ -951,8 +968,8 @@ def push_changes(branch: Optional[str] = None) -> bool:
         logger.error(f"Unexpected error pushing changes: {str(e)}")
         return False
 
-def pull_changes(branch: Optional[str] = None) -> bool:
-    """Pull changes from remote repository."""
+def pull_changes(branch: Optional[str] = None, use_rebase: Optional[bool] = None) -> bool:
+    """Pull changes from remote repository using rebase to maintain clean history."""
     if not branch:
         # Get current branch
         try:
@@ -967,13 +984,77 @@ def pull_changes(branch: Optional[str] = None) -> bool:
         except:
             branch = "main"
     
-    logger.info(f"Pulling changes from branch: {branch}")
+    # Determine pull strategy if not specified
+    if use_rebase is None:
+        config = load_config()
+        pull_strategy = config.get("sync", {}).get("pull_strategy", "rebase")
+        use_rebase = pull_strategy == "rebase"
+    
+    logger.info(f"Pulling changes from branch: {branch} (strategy: {'rebase' if use_rebase else 'merge'})")
     
     try:
-        # Pull changes
-        exit_code, _, _ = run_command(["git", "pull", "origin", branch], cwd=REPO_DIR)
+        # First, check if there are uncommitted changes
+        exit_code, stdout, _ = run_command(["git", "status", "--porcelain"], cwd=REPO_DIR, check=False)
+        if exit_code == 0 and stdout.strip():
+            logger.warning("Uncommitted changes detected. Stashing them before pull.")
+            print_warning("Uncommitted changes detected. Stashing them temporarily...")
+            
+            # Stash changes
+            exit_code, _, stderr = run_command(["git", "stash", "push", "-m", "Auto-stash before pull"], cwd=REPO_DIR, check=False)
+            if exit_code != 0:
+                logger.error(f"Failed to stash changes: {stderr}")
+                print_error("Failed to stash uncommitted changes. Please commit or stash them manually.")
+                return False
+            
+            stashed = True
+        else:
+            stashed = False
+        
+        # Fetch latest changes
+        exit_code, _, stderr = run_command(["git", "fetch", "origin"], cwd=REPO_DIR, check=False)
         if exit_code != 0:
+            logger.error(f"Failed to fetch from origin: {stderr}")
+            print_error(f"Failed to fetch from remote: {stderr}")
             return False
+        
+        # Pull with configured strategy
+        pull_args = ["git", "pull"]
+        if use_rebase:
+            pull_args.append("--rebase")
+        pull_args.extend(["origin", branch])
+        
+        exit_code, stdout, stderr = run_command(pull_args, cwd=REPO_DIR, check=False)
+        
+        if exit_code != 0:
+            if "CONFLICT" in stderr or "conflict" in stderr.lower():
+                logger.error("Merge conflicts detected during rebase")
+                print_error("Conflicts detected during pull. Attempting to abort rebase...")
+                
+                # Abort the rebase
+                run_command(["git", "rebase", "--abort"], cwd=REPO_DIR, check=False)
+                
+                # Try a regular pull instead
+                print_warning("Falling back to regular merge strategy...")
+                exit_code, _, stderr = run_command(["git", "pull", "origin", branch], cwd=REPO_DIR, check=False)
+                
+                if exit_code != 0:
+                    logger.error(f"Failed to pull changes even with merge strategy: {stderr}")
+                    print_error("Failed to pull changes. Your repository may have conflicts that need manual resolution.")
+                    print_info("You can try resolving this manually with: cd ~/.mac-sync-wizard/repo && git pull")
+                    return False
+            else:
+                logger.error(f"Failed to pull changes: {stderr}")
+                print_error(f"Failed to pull changes: {stderr}")
+                return False
+        
+        # If we stashed changes, pop them back
+        if stashed:
+            print_info("Restoring stashed changes...")
+            exit_code, _, stderr = run_command(["git", "stash", "pop"], cwd=REPO_DIR, check=False)
+            if exit_code != 0:
+                logger.warning(f"Failed to pop stashed changes: {stderr}")
+                print_warning("Failed to restore stashed changes automatically.")
+                print_info("Your changes are still saved. You can restore them manually with: cd ~/.mac-sync-wizard/repo && git stash pop")
         
         logger.info("Changes pulled successfully")
         return True
