@@ -61,6 +61,56 @@ mac-sync-wizard restore
 - **Anki**: Add-ons and preferences
 - **Stretchly**: Break reminder settings
 - **Maccy**: Clipboard manager preferences
+- **Shell**: Organized aliases, functions, and shell configurations
+
+## Shell Configuration Sync
+
+iconfig automatically extracts and syncs your existing shell aliases across machines.
+
+### Setting Up Shell Sync
+
+Shell alias extraction is integrated into the main setup process:
+
+```bash
+mac-sync-wizard setup
+# When prompted to enable "shell", say yes
+# It will automatically extract your existing aliases
+```
+
+The setup will:
+1. **Scan** your existing shell files (`.bashrc`, `.zshrc`, etc.) for aliases
+2. **Extract** all your aliases to `~/.iconfig/shell/aliases.sh`
+3. **Setup** auto-loading in your shell configuration
+4. **Preserve** your original files unchanged
+
+### How It Works
+
+After setup:
+- Your existing aliases are copied to `~/.iconfig/shell/aliases.sh`
+- This file is synced when you run `mac-sync-wizard sync`
+- On new machines, `mac-sync-wizard restore` brings all your aliases
+- Machine-specific aliases can go in `~/.iconfig/shell/local.sh` (not synced)
+
+### Example
+
+```bash
+# Your existing .zshrc has:
+alias gitpush='git push origin $(git rev-parse --abbrev-ref HEAD)'
+alias gs='git status'
+alias ll='ls -la'
+
+# After running setup_shell_sync.sh:
+# These are automatically extracted to ~/.iconfig/shell/aliases.sh
+# And will sync to all your machines!
+```
+
+### Benefits
+
+- **Automatic**: Extracts existing aliases - no manual copying
+- **Simple**: One file contains all synced aliases
+- **Clean**: No noise from history files or caches
+- **Safe**: Original shell files remain untouched
+- **Flexible**: Edit the aliases file to add/remove what syncs
 
 ## Font Sync Configuration
 
