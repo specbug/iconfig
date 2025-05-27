@@ -170,23 +170,42 @@ if [[ -z "$NEW_MACHINE" || "$NEW_MACHINE" =~ ^[Yy]$ ]]; then
     # Install prerequisites
     echo -e "${BLUE}Checking prerequisites...${NC}"
     
+    # Check prerequisites
+    echo -e "${BLUE}Checking prerequisites...${NC}"
+    
+    MISSING_PREREQS=()
+    
     # Check for Homebrew
     if ! command -v brew &> /dev/null; then
-        echo -e "${YELLOW}Homebrew not found. Installing...${NC}"
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        
-        # Add Homebrew to PATH for Apple Silicon Macs
-        if [[ -f "/opt/homebrew/bin/brew" ]]; then
-            eval "$(/opt/homebrew/bin/brew shellenv)"
-        fi
+        MISSING_PREREQS+=("Homebrew (install from https://brew.sh)")
     fi
     
-    # Install Git LFS
-    if ! command -v git-lfs &> /dev/null; then
-        echo -e "${YELLOW}Installing Git LFS for large file support...${NC}"
-        brew install git-lfs
-        git lfs install
+    # Check for Git
+    if ! command -v git &> /dev/null; then
+        MISSING_PREREQS+=("Git (run: brew install git)")
     fi
+    
+    # Check for Git LFS
+    if ! command -v git-lfs &> /dev/null; then
+        MISSING_PREREQS+=("Git LFS (run: brew install git-lfs && git lfs install)")
+    fi
+    
+    # If prerequisites are missing, show instructions
+    if [ ${#MISSING_PREREQS[@]} -gt 0 ]; then
+        echo -e "${RED}Missing prerequisites:${NC}"
+        for prereq in "${MISSING_PREREQS[@]}"; do
+            echo -e "  - $prereq"
+        done
+        echo ""
+        echo -e "${YELLOW}Please install the missing prerequisites and run this installer again.${NC}"
+        echo -e "${YELLOW}Quick install commands:${NC}"
+        echo -e "${BLUE}/bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"${NC}"
+        echo -e "${BLUE}brew install git git-lfs${NC}"
+        echo -e "${BLUE}git lfs install${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}✓ All prerequisites installed${NC}"
     
     # Ensure PATH is updated
     export PATH="$HOME/.local/bin:$PATH"
@@ -206,9 +225,170 @@ if [[ -z "$NEW_MACHINE" || "$NEW_MACHINE" =~ ^[Yy]$ ]]; then
         echo -e "${BLUE}Configuring iconfig with your repository...${NC}"
         mac-sync-wizard setup --repo "$REPO_URL" --auto-restore
         
+        # Ask about installing applications
+        echo ""
+        echo -e "${BLUE}Would you like to install recommended applications?${NC}"
+        echo -e "${YELLOW}This includes: Cursor, PyCharm, Sublime Text, Warp, and development tools${NC}"
+        read -p "Install applications now? [y/N]: " -r INSTALL_APPS
+        
+        if [[ "$INSTALL_APPS" =~ ^[Yy]$ ]]; then
+            echo -e "${BLUE}Installing applications via Homebrew...${NC}"
+            
+            # Create temporary Brewfile
+            TEMP_BREWFILE=$(mktemp)
+            cat > "$TEMP_BREWFILE" << 'EOF'
+# iconfig Applications and Tools
+
+tap 'homebrew/cask'
+
+# Development Tools
+cask 'cursor'
+cask 'pycharm-ce'      # Community Edition
+cask 'sublime-text'
+cask 'visual-studio-code'
+
+# Terminal & Shell
+cask 'warp'
+cask 'iterm2'
+
+# Productivity
+cask 'anki'
+cask 'stretchly'
+
+# Utilities
+cask 'maccy'           # Clipboard manager
+cask 'arc'             # Browser
+
+# Version Control (if not already installed)
+brew 'git'
+brew 'git-lfs'
+brew 'gh'              # GitHub CLI
+
+# Development Languages
+brew 'python@3.11'
+brew 'node'
+brew 'go'
+brew 'ruby'
+
+# CLI Tools
+brew 'wget'
+brew 'jq'
+brew 'ripgrep'
+brew 'fd'
+brew 'bat'
+brew 'eza'
+brew 'fzf'
+
+# Fonts
+tap 'homebrew/cask-fonts'
+cask 'font-jetbrains-mono'
+cask 'font-fira-code'
+EOF
+            
+            # Run brew bundle
+            echo -e "${YELLOW}Running brew bundle (this may take a while)...${NC}"
+            if brew bundle --file="$TEMP_BREWFILE"; then
+                echo -e "${GREEN}✓ Applications installed successfully${NC}"
+            else
+                echo -e "${YELLOW}Some applications may have failed to install (they might already be installed)${NC}"
+            fi
+            
+            # Clean up
+            rm -f "$TEMP_BREWFILE"
+            
+            # Also save a copy for future reference
+            BREWFILE_PATH="$HOME/.iconfig/Brewfile"
+            mkdir -p "$HOME/.iconfig"
+            cat > "$BREWFILE_PATH" << 'EOF'
+# iconfig Recommended Applications
+# Re-run with: brew bundle --file ~/.iconfig/Brewfile
+
+tap 'homebrew/cask'
+
+# Development Tools
+cask 'cursor'
+cask 'pycharm-ce'
+cask 'sublime-text'
+cask 'visual-studio-code'
+
+# Terminal & Shell
+cask 'warp'
+cask 'iterm2'
+
+# Productivity
+cask 'anki'
+cask 'stretchly'
+
+# Utilities
+cask 'maccy'
+cask 'arc'
+
+# Add more apps as needed...
+EOF
+            echo -e "${GREEN}✓ Saved Brewfile to $BREWFILE_PATH for future use${NC}"
+        else
+            # Just create the Brewfile for later
+            BREWFILE_PATH="$HOME/.iconfig/Brewfile"
+            mkdir -p "$HOME/.iconfig"
+            cat > "$BREWFILE_PATH" << 'EOF'
+# iconfig Recommended Applications
+# Install with: brew bundle --file ~/.iconfig/Brewfile
+
+tap 'homebrew/cask'
+
+# Development Tools
+cask 'cursor'
+cask 'pycharm-ce'      # Community Edition
+cask 'sublime-text'
+cask 'visual-studio-code'
+
+# Terminal & Shell
+cask 'warp'
+cask 'iterm2'
+
+# Productivity
+cask 'anki'
+cask 'stretchly'
+
+# Utilities
+cask 'maccy'           # Clipboard manager
+cask 'arc'             # Browser
+
+# Version Control
+brew 'git'
+brew 'git-lfs'
+brew 'gh'              # GitHub CLI
+
+# Development Languages
+brew 'python@3.11'
+brew 'node'
+brew 'go'
+brew 'ruby'
+
+# CLI Tools
+brew 'wget'
+brew 'jq'
+brew 'ripgrep'
+brew 'fd'
+brew 'bat'
+brew 'eza'
+brew 'fzf'
+
+# Fonts
+tap 'homebrew/cask-fonts'
+cask 'font-jetbrains-mono'
+cask 'font-fira-code'
+EOF
+            
+            echo -e "${GREEN}✓ Created Brewfile at $BREWFILE_PATH${NC}"
+            echo -e "${YELLOW}To install applications later, run:${NC}"
+            echo -e "${BLUE}brew bundle --file ~/.iconfig/Brewfile${NC}"
+        fi
+        
         echo ""
         echo -e "${GREEN}✨ New machine setup complete!${NC}"
         echo -e "${YELLOW}Your configurations have been restored.${NC}"
+        echo -e "${YELLOW}Installed applications are configured with your synced settings.${NC}"
         echo -e "${YELLOW}Restart your terminal to load shell aliases and configurations.${NC}"
     else
         echo -e "${RED}No repository URL provided.${NC}"

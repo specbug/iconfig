@@ -169,7 +169,8 @@ UTILITY_CONFIGS = {
             "~/Library/Application Support/Cursor/User/settings.json",
             "~/Library/Application Support/Cursor/User/extensions/"
         ],
-        "exclude_patterns": ["*.log", "Cache/*"]
+        "exclude_patterns": ["*.log", "Cache/*"],
+        "install_url": "https://downloader.cursor.sh/download/latest/mac"
     },
     "pycharm": {
         "enabled": True,
@@ -189,14 +190,16 @@ UTILITY_CONFIGS = {
             "jdbc-drivers/", "ssl/", "port", "plugins/updatedPlugins.xml",
             "marketplace/", "*.hprof", "*.snapshot", "eval/", "repair/",
             "*/.DS_Store"
-        ]
+        ],
+        "install_url": "https://download.jetbrains.com/python/pycharm-2025.1.1.1-aarch64.dmg"
     },
     "sublime": {
         "enabled": True,
         "paths": [
             "~/Library/Application Support/Sublime Text/Packages/User/"
         ],
-        "exclude_patterns": ["*.log", "Cache/*"]
+        "exclude_patterns": ["*.log", "Cache/*"],
+        "install_url": "https://download.sublimetext.com/sublime_text_build_4180_mac.zip"
     },
     "trackpad": {
         "enabled": True,
@@ -226,7 +229,8 @@ UTILITY_CONFIGS = {
         "exclude_patterns": [
             "Cache/*", "*.log", "*.pyc", "__pycache__",
             "*.sock", "*.pid"
-        ]
+        ],
+        "install_url": "https://app.warp.dev/download/stable"
     },
     "fonts": {
         "enabled": True,
@@ -276,7 +280,8 @@ UTILITY_CONFIGS = {
             "~/Library/Application Support/Arc/",
             "~/Library/Preferences/company.thebrowser.Arc.plist"
         ],
-        "exclude_patterns": ["Cache/*", "*.log"]
+        "exclude_patterns": ["Cache/*", "*.log"],
+        "install_url": "https://releases.arc.net/release/Arc-latest.dmg"
     },
     "logi": {
         "enabled": False,  # Installation only

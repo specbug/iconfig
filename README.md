@@ -52,12 +52,26 @@ curl -fsSL https://raw.githubusercontent.com/specbug/iconfig/main/web_installer.
 ```
 
 When prompted, answer "Yes" to new machine setup. The installer will:
-1. Install prerequisites (Homebrew, Git LFS)
+1. Check that prerequisites are installed (Homebrew, Git, Git LFS)
 2. Ask for your existing repository URL
-3. Configure iconfig
-4. Automatically restore all your configurations
+3. Configure iconfig and restore all your configurations
+4. Create a Brewfile with recommended applications
+5. Your synced settings will be ready when you install the apps
 
-That's it! One command to fully set up a new Mac.
+### Prerequisites
+
+Before running the installer, ensure you have:
+- **Homebrew**: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+- **Git & Git LFS**: `brew install git git-lfs && git lfs install`
+
+### Installing Applications
+
+After setup, install applications using the generated Brewfile:
+```bash
+brew bundle --file ~/.iconfig/Brewfile
+```
+
+This approach is cleaner and more maintainable than hardcoding URLs or versions.
 
 ## Supported Applications
 
