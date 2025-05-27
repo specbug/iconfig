@@ -10,6 +10,26 @@
 
 set -e
 
+# Request sudo upfront if needed (for potential app installations)
+# This keeps sudo alive for the duration of the script
+if [ "$EUID" -ne 0 ]; then
+    echo "This script may need administrator privileges for some operations."
+    echo "Please enter your password if prompted."
+    sudo -v
+    
+    # Keep sudo alive in the background
+    while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+    SUDO_PID=$!
+    
+    # Cleanup function to kill the sudo keepalive
+    cleanup() {
+        if [ ! -z "$SUDO_PID" ]; then
+            kill $SUDO_PID 2>/dev/null || true
+        fi
+    }
+    trap cleanup EXIT
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -244,55 +264,72 @@ print('✓ Configuration created with all syncable utilities enabled')
     
     echo -e "${GREEN}✓ Configuration complete${NC}"
     
-    # Create Brewfile
+    # Create Brewfile with existence checks
     BREWFILE_PATH="$HOME/.iconfig/Brewfile"
     mkdir -p "$HOME/.iconfig"
+    
+    echo -e "${BLUE}Checking installed applications...${NC}"
+    
+    # Function to check if a cask is installed
+    check_cask_installed() {
+        brew list --cask "$1" &>/dev/null
+    }
+    
+    # Function to check if a formula is installed
+    check_formula_installed() {
+        brew list --formula "$1" &>/dev/null
+    }
+    
+    # Start creating Brewfile
     cat > "$BREWFILE_PATH" << 'EOF'
 # iconfig Recommended Applications
 # Install with: brew bundle --file ~/.iconfig/Brewfile
+# This file only includes applications that are not already installed
 
 tap 'homebrew/cask'
-
-# Development Tools
-cask 'cursor'
-cask 'pycharm-ce'
-cask 'sublime-text'
-cask 'visual-studio-code'
-
-# Terminal & Shell
-cask 'warp'
-cask 'iterm2'
-
-# Productivity
-cask 'anki'
-cask 'stretchly'
-
-# Utilities
-cask 'maccy'
-cask 'arc'
-
-# Version Control
-brew 'git'
-brew 'git-lfs'
-brew 'gh'
-
-# Development Languages
-brew 'python@3.11'
-brew 'node'
-
-# CLI Tools
-brew 'wget'
-brew 'jq'
-brew 'ripgrep'
-brew 'fd'
-brew 'bat'
-brew 'fzf'
-
-# Fonts
 tap 'homebrew/cask-fonts'
-cask 'font-jetbrains-mono'
-cask 'font-fira-code'
+
 EOF
+    
+    # Check and add casks
+    echo "# Development Tools" >> "$BREWFILE_PATH"
+    check_cask_installed 'cursor' || echo "cask 'cursor'" >> "$BREWFILE_PATH"
+    check_cask_installed 'pycharm-ce' || echo "cask 'pycharm-ce'" >> "$BREWFILE_PATH"
+    check_cask_installed 'sublime-text' || echo "cask 'sublime-text'" >> "$BREWFILE_PATH"
+    check_cask_installed 'visual-studio-code' || echo "cask 'visual-studio-code'" >> "$BREWFILE_PATH"
+    
+    echo -e "\n# Terminal & Shell" >> "$BREWFILE_PATH"
+    check_cask_installed 'warp' || echo "cask 'warp'" >> "$BREWFILE_PATH"
+    check_cask_installed 'iterm2' || echo "cask 'iterm2'" >> "$BREWFILE_PATH"
+    
+    echo -e "\n# Productivity" >> "$BREWFILE_PATH"
+    check_cask_installed 'anki' || echo "cask 'anki'" >> "$BREWFILE_PATH"
+    check_cask_installed 'stretchly' || echo "cask 'stretchly'" >> "$BREWFILE_PATH"
+    
+    echo -e "\n# Utilities" >> "$BREWFILE_PATH"
+    check_cask_installed 'maccy' || echo "cask 'maccy'" >> "$BREWFILE_PATH"
+    check_cask_installed 'arc' || echo "cask 'arc'" >> "$BREWFILE_PATH"
+    
+    echo -e "\n# Version Control" >> "$BREWFILE_PATH"
+    check_formula_installed 'git' || echo "brew 'git'" >> "$BREWFILE_PATH"
+    check_formula_installed 'git-lfs' || echo "brew 'git-lfs'" >> "$BREWFILE_PATH"
+    check_formula_installed 'gh' || echo "brew 'gh'" >> "$BREWFILE_PATH"
+    
+    echo -e "\n# Development Languages" >> "$BREWFILE_PATH"
+    check_formula_installed 'python@3.11' || echo "brew 'python@3.11'" >> "$BREWFILE_PATH"
+    check_formula_installed 'node' || echo "brew 'node'" >> "$BREWFILE_PATH"
+    
+    echo -e "\n# CLI Tools" >> "$BREWFILE_PATH"
+    check_formula_installed 'wget' || echo "brew 'wget'" >> "$BREWFILE_PATH"
+    check_formula_installed 'jq' || echo "brew 'jq'" >> "$BREWFILE_PATH"
+    check_formula_installed 'ripgrep' || echo "brew 'ripgrep'" >> "$BREWFILE_PATH"
+    check_formula_installed 'fd' || echo "brew 'fd'" >> "$BREWFILE_PATH"
+    check_formula_installed 'bat' || echo "brew 'bat'" >> "$BREWFILE_PATH"
+    check_formula_installed 'fzf' || echo "brew 'fzf'" >> "$BREWFILE_PATH"
+    
+    echo -e "\n# Fonts" >> "$BREWFILE_PATH"
+    check_cask_installed 'font-jetbrains-mono' || echo "cask 'font-jetbrains-mono'" >> "$BREWFILE_PATH"
+    check_cask_installed 'font-fira-code' || echo "cask 'font-fira-code'" >> "$BREWFILE_PATH"
         
         echo -e "${GREEN}✓ Created Brewfile at $BREWFILE_PATH${NC}"
         
@@ -302,17 +339,40 @@ EOF
         echo -e "${YELLOW}This includes: Cursor, PyCharm, Sublime Text, Warp, and development tools${NC}"
         read -p "Install applications now? [y/N]: " -r INSTALL_APPS
         
-        if [[ "$INSTALL_APPS" =~ ^[Yy]$ ]]; then
-            echo -e "${BLUE}Installing applications via Homebrew...${NC}"
-            if brew bundle --file="$BREWFILE_PATH"; then
-                echo -e "${GREEN}✓ Applications installed successfully${NC}"
+                if [[ "$INSTALL_APPS" =~ ^[Yy]$ ]]; then
+            # Count what needs to be installed
+            NEW_APPS=$(grep -E "^(cask|brew) " "$BREWFILE_PATH" | wc -l | tr -d ' ')
+            
+            if [ "$NEW_APPS" -eq 0 ]; then
+                echo -e "${GREEN}✓ All recommended applications are already installed!${NC}"
             else
-                echo -e "${YELLOW}Some applications may have failed to install${NC}"
+                echo -e "${BLUE}Installing $NEW_APPS new applications via Homebrew...${NC}"
+                echo -e "${YELLOW}This may take a while and require your password for some installations.${NC}"
+                
+                # Show what will be installed
+                echo -e "\n${BLUE}Applications to install:${NC}"
+                grep -E "^(cask|brew) " "$BREWFILE_PATH" | sed 's/^/  - /'
+                echo ""
+                
+                # Use brew bundle with verbose output
+                if brew bundle --file="$BREWFILE_PATH" --verbose; then
+                    echo -e "${GREEN}✓ Applications installed successfully${NC}"
+                else
+                    echo -e "${YELLOW}Some applications may have failed to install${NC}"
+                    echo -e "${YELLOW}You can retry with: brew bundle --file ~/.iconfig/Brewfile${NC}"
+                fi
             fi
         else
-                    echo -e "${YELLOW}To install applications later, run:${NC}"
-        echo -e "${BLUE}brew bundle --file ~/.iconfig/Brewfile${NC}"
-    fi
+            # Count what would be installed
+            NEW_APPS=$(grep -E "^(cask|brew) " "$BREWFILE_PATH" | wc -l | tr -d ' ')
+            if [ "$NEW_APPS" -gt 0 ]; then
+                echo -e "${YELLOW}Skipping installation of $NEW_APPS applications.${NC}"
+                echo -e "${YELLOW}To install them later, run:${NC}"
+                echo -e "${BLUE}brew bundle --file ~/.iconfig/Brewfile${NC}"
+            else
+                echo -e "${GREEN}✓ All recommended applications are already installed!${NC}"
+            fi
+        fi
     
     # Now restore configurations after applications are potentially installed
     echo ""
