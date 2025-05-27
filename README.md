@@ -19,7 +19,7 @@ A robust tool for synchronizing macOS application configurations across multiple
 ### Installation
 
 ```bash
-git clone https://github.com/yourusername/iconfig.git
+git clone https://github.com/specbug/iconfig.git
 cd iconfig
 chmod +x install.sh
 ./install.sh
@@ -27,7 +27,7 @@ chmod +x install.sh
 
 Or download and run directly:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yourusername/iconfig/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/specbug/iconfig/main/install.sh | bash
 ```
 
 ### First Time Setup
