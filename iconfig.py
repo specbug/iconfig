@@ -2709,6 +2709,14 @@ def setup_command(args):
     """Run the setup wizard"""
     logger.info("Starting setup wizard")
     
+    # Handle repository URL if provided via command line
+    if hasattr(args, 'repo') and args.repo:
+        logger.info(f"Repository URL provided: {args.repo}")
+        # Pre-load the repository URL into config
+        config = load_config()
+        config["repository"]["url"] = args.repo
+        save_config(config)
+    
     if hasattr(args, 'fresh') and args.fresh:
         logger.info("Fresh reinstall requested")
         print_warning("Fresh reinstall requested. This will remove all existing configuration and repository data.")
@@ -2764,7 +2772,21 @@ def setup_command(args):
             print_info("Fresh reinstall cancelled.")
             return
     
-    run_setup_wizard()
+    # Run the setup wizard
+    setup_success = run_setup_wizard()
+    
+    # If setup was successful and auto-restore is requested, run restore
+    if setup_success and hasattr(args, 'auto_restore') and args.auto_restore:
+        logger.info("Auto-restore requested after setup")
+        print_header("Auto-Restore")
+        print_info("Setup complete! Now restoring your configurations...")
+        
+        # Create a mock args object for restore command
+        class RestoreArgs:
+            utility = None
+        
+        restore_args = RestoreArgs()
+        restore_command(restore_args)
 
 def sync_command(args):
     """Run a manual sync operation"""
@@ -3014,6 +3036,8 @@ def main():
     # Setup command
     setup_parser = subparsers.add_parser("setup", help="Run the setup wizard")
     setup_parser.add_argument("--fresh", action="store_true", help="Perform a fresh reinstall, removing all existing configuration and data")
+    setup_parser.add_argument("--repo", help="Repository URL to use for setup")
+    setup_parser.add_argument("--auto-restore", action="store_true", help="Automatically restore after setup (for new machines)")
     
     # Sync command
     sync_parser = subparsers.add_parser("sync", help="Perform a manual sync")

@@ -150,16 +150,78 @@ echo -e "${BLUE}Cleaning up temporary files...${NC}"
 cd "$HOME"
 rm -rf "$INSTALL_DIR"
 
+# Check if this is likely a new machine setup
 echo ""
 echo -e "${GREEN}================================${NC}"
 echo -e "${GREEN}   Installation Complete!${NC}"
 echo -e "${GREEN}================================${NC}"
 echo ""
-echo -e "${YELLOW}Next steps:${NC}"
-echo -e "1. Run: ${BLUE}mac-sync-wizard setup${NC}"
-echo -e "2. Follow the setup wizard to configure your repository"
-echo -e "3. Start syncing your Mac configurations!"
+
+# Ask if this is a new machine setup
+echo -e "${BLUE}Is this a new machine where you want to restore existing configurations?${NC}"
+echo -e "${YELLOW}(If yes, we'll help you set up prerequisites and restore your configs)${NC}"
 echo ""
-echo -e "${YELLOW}Note: You may need to restart your terminal or run:${NC}"
-echo -e "${BLUE}export PATH=\"\$HOME/.local/bin:\$PATH\"${NC}"
+read -p "Is this a new machine setup? [Y/n]: " -r NEW_MACHINE
+echo ""
+
+if [[ -z "$NEW_MACHINE" || "$NEW_MACHINE" =~ ^[Yy]$ ]]; then
+    echo -e "${BLUE}Starting new machine setup...${NC}"
+    
+    # Install prerequisites
+    echo -e "${BLUE}Checking prerequisites...${NC}"
+    
+    # Check for Homebrew
+    if ! command -v brew &> /dev/null; then
+        echo -e "${YELLOW}Homebrew not found. Installing...${NC}"
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        
+        # Add Homebrew to PATH for Apple Silicon Macs
+        if [[ -f "/opt/homebrew/bin/brew" ]]; then
+            eval "$(/opt/homebrew/bin/brew shellenv)"
+        fi
+    fi
+    
+    # Install Git LFS
+    if ! command -v git-lfs &> /dev/null; then
+        echo -e "${YELLOW}Installing Git LFS for large file support...${NC}"
+        brew install git-lfs
+        git lfs install
+    fi
+    
+    # Ensure PATH is updated
+    export PATH="$HOME/.local/bin:$PATH"
+    
+    # Ask for repository URL
+    echo ""
+    echo -e "${BLUE}Enter your existing iconfig repository URL:${NC}"
+    echo -e "${YELLOW}(e.g., https://github.com/specbug/my-mac-configs.git or git@github.com:specbug/my-mac-configs.git)${NC}"
+    read -p "Repository URL: " REPO_URL
+    
+    if [ -n "$REPO_URL" ]; then
+        # Create a simple config for setup
+        CONFIG_DIR="$HOME/.mac-sync-wizard/config"
+        mkdir -p "$CONFIG_DIR"
+        
+        # Run setup with the repository URL
+        echo -e "${BLUE}Configuring iconfig with your repository...${NC}"
+        mac-sync-wizard setup --repo "$REPO_URL" --auto-restore
+        
+        echo ""
+        echo -e "${GREEN}✨ New machine setup complete!${NC}"
+        echo -e "${YELLOW}Your configurations have been restored.${NC}"
+        echo -e "${YELLOW}Restart your terminal to load shell aliases and configurations.${NC}"
+    else
+        echo -e "${RED}No repository URL provided.${NC}"
+        echo -e "${YELLOW}Run 'mac-sync-wizard setup' later to configure.${NC}"
+    fi
+else
+    # Regular setup for existing machine
+    echo -e "${YELLOW}For existing machine setup:${NC}"
+    echo -e "1. Run: ${BLUE}mac-sync-wizard setup${NC} to configure sync"
+    echo -e "2. Run: ${BLUE}mac-sync-wizard sync${NC} to sync your configurations"
+    echo ""
+    echo -e "${YELLOW}Note: You may need to restart your terminal or run:${NC}"
+    echo -e "${BLUE}export PATH=\"\$HOME/.local/bin:\$PATH\"${NC}"
+fi
+
 echo "" 
