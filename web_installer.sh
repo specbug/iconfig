@@ -169,14 +169,85 @@ if [[ -z "$NEW_MACHINE" || "$NEW_MACHINE" =~ ^[Yy]$ ]]; then
         exit 1
     fi
     
-    # Now run setup with the repository URL
-    echo -e "${BLUE}Configuring iconfig with your repository...${NC}"
-    mac-sync-wizard setup --repo "$REPO_URL" --auto-restore
-        
-        # Create Brewfile
-        BREWFILE_PATH="$HOME/.iconfig/Brewfile"
-        mkdir -p "$HOME/.iconfig"
-        cat > "$BREWFILE_PATH" << 'EOF'
+        # Clone the repository first
+    echo -e "${BLUE}Cloning your configurations repository...${NC}"
+    REPO_DIR="$HOME/.mac-sync-wizard/repo"
+    
+    # Remove existing repo directory if it exists
+    if [ -d "$REPO_DIR" ]; then
+        echo -e "${YELLOW}Removing existing repository directory...${NC}"
+        rm -rf "$REPO_DIR"
+    fi
+    
+    # Clone the repository
+    if git clone "$REPO_URL" "$REPO_DIR"; then
+        echo -e "${GREEN}✓ Repository cloned successfully${NC}"
+    else
+        echo -e "${RED}Failed to clone repository${NC}"
+        echo -e "${YELLOW}Please check your repository URL and credentials${NC}"
+        exit 1
+    fi
+    
+    # Create config with all syncable utilities enabled
+    echo -e "${BLUE}Creating configuration...${NC}"
+    CONFIG_DIR="$HOME/.mac-sync-wizard/config"
+    mkdir -p "$CONFIG_DIR"
+    
+    # Create config that enables all syncable utilities
+    python3 -c "
+import json
+import os
+
+# Default utilities that should be synced
+UTILITY_CONFIGS = {
+    'cursor': {'enabled': True, 'paths': ['~/Library/Application Support/Cursor/User/keybindings.json', '~/Library/Application Support/Cursor/User/settings.json', '~/Library/Application Support/Cursor/User/extensions/'], 'exclude_patterns': ['*.log', 'Cache/*']},
+    'pycharm': {'enabled': True, 'paths': ['~/Library/Application Support/JetBrains/PyCharm*/options/', '~/Library/Application Support/JetBrains/PyCharm*/keymaps/', '~/Library/Application Support/JetBrains/PyCharm*/codestyles/', '~/Library/Application Support/JetBrains/PyCharm*/templates/', '~/Library/Application Support/JetBrains/PyCharm*/colors/', '~/Library/Application Support/JetBrains/PyCharm*/fileTemplates/', '~/Library/Application Support/JetBrains/PyCharm*/inspection/', '~/Library/Application Support/JetBrains/PyCharm*/tools/', '~/Library/Application Support/JetBrains/PyCharm*/shelf/'], 'exclude_patterns': ['*.log', 'Cache/*', 'workspace/', 'tasks/', 'scratches/', 'jdbc-drivers/', 'ssl/', 'port', 'plugins/updatedPlugins.xml', 'marketplace/', '*.hprof', '*.snapshot', 'eval/', 'repair/', '*/.DS_Store']},
+    'sublime': {'enabled': True, 'paths': ['~/Library/Application Support/Sublime Text/Packages/User/'], 'exclude_patterns': ['*.log', 'Cache/*']},
+    'trackpad': {'enabled': True, 'paths': ['~/Library/Preferences/com.apple.driver.AppleBluetoothMultitouch.trackpad.plist', '~/Library/Preferences/com.apple.AppleMultitouchTrackpad.plist'], 'exclude_patterns': []},
+    'git': {'enabled': True, 'paths': ['~/.gitconfig', '~/.config/git/'], 'exclude_patterns': []},
+    'warp': {'enabled': True, 'paths': ['~/.warp/themes/', '~/.warp/launch_configurations/', '~/.warp/user_scripts/', '~/.warp/settings.yaml', '~/.warp/keybindings.json'], 'exclude_patterns': ['Cache/*', '*.log', '*.pyc', '__pycache__', '*.sock', '*.pid']},
+    'fonts': {'enabled': True, 'paths': ['~/Library/Fonts/'], 'exclude_patterns': [], 'include_patterns': [], 'custom_fonts': []},
+    'anki': {'enabled': True, 'paths': ['~/Library/Application Support/Anki2/addons21/', '~/Library/Application Support/Anki2/prefs21.db'], 'exclude_patterns': ['*.log']},
+    'stretchly': {'enabled': True, 'paths': ['~/Library/Application Support/stretchly/'], 'exclude_patterns': ['*.log']},
+    'maccy': {'enabled': True, 'paths': ['~/Library/Containers/org.p0deje.Maccy/Data/Library/Preferences/org.p0deje.Maccy.plist'], 'exclude_patterns': []},
+    'shell': {'enabled': True, 'paths': ['~/.iconfig/shell/'], 'exclude_patterns': []},
+    'arc': {'enabled': False, 'paths': ['~/Library/Application Support/Arc/', '~/Library/Preferences/company.thebrowser.Arc.plist'], 'exclude_patterns': ['Cache/*', '*.log']},
+    'logi': {'enabled': False, 'paths': ['~/Library/Preferences/com.logi.optionsplus.plist', '~/Library/Application Support/LogiOptionsPlus/config.json', '~/Library/Application Support/LogiOptionsPlus/settings.db', '~/Library/Application Support/LogiOptionsPlus/macros.db', '~/Library/Application Support/LogiOptionsPlus/permissions.json', '~/Library/Application Support/LogiOptionsPlus/cc_config.json'], 'exclude_patterns': []},
+    '1password': {'enabled': False, 'paths': ['~/Library/Application Support/1Password/', '~/Library/Preferences/com.1password.1password.plist'], 'exclude_patterns': ['*.log', 'Cache/*']}
+}
+
+config = {
+    'repository': {
+        'url': '$REPO_URL',
+        'branch': 'main',
+        'auth_type': 'ssh'
+    },
+    'sync': {
+        'frequency': 21600,
+        'auto_commit': True,
+        'commit_message_template': 'Auto-sync: {date} - {changes}',
+        'pull_strategy': 'rebase'
+    },
+    'notifications': {
+        'level': 'errors_only',
+        'method': 'terminal-notifier'
+    },
+    'utilities': UTILITY_CONFIGS
+}
+
+config_path = os.path.expanduser('$CONFIG_DIR/sync_config.json')
+with open(config_path, 'w') as f:
+    json.dump(config, f, indent=2)
+
+print('✓ Configuration created with all syncable utilities enabled')
+"
+    
+    echo -e "${GREEN}✓ Configuration complete${NC}"
+    
+    # Create Brewfile
+    BREWFILE_PATH="$HOME/.iconfig/Brewfile"
+    mkdir -p "$HOME/.iconfig"
+    cat > "$BREWFILE_PATH" << 'EOF'
 # iconfig Recommended Applications
 # Install with: brew bundle --file ~/.iconfig/Brewfile
 
@@ -239,10 +310,15 @@ EOF
                 echo -e "${YELLOW}Some applications may have failed to install${NC}"
             fi
         else
-            echo -e "${YELLOW}To install applications later, run:${NC}"
-            echo -e "${BLUE}brew bundle --file ~/.iconfig/Brewfile${NC}"
-        fi
-        
+                    echo -e "${YELLOW}To install applications later, run:${NC}"
+        echo -e "${BLUE}brew bundle --file ~/.iconfig/Brewfile${NC}"
+    fi
+    
+    # Now restore configurations after applications are potentially installed
+    echo ""
+    echo -e "${BLUE}Restoring your Mac configurations...${NC}"
+    mac-sync-wizard restore
+    
     echo ""
     echo -e "${GREEN}✨ New machine setup complete!${NC}"
     echo -e "${YELLOW}Your configurations have been restored.${NC}"
