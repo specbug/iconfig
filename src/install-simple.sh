@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Mac Sync Wizard Installation Script (Virtual Environment Version)
-# This script installs the Mac Sync Wizard in a virtual environment for non-disruptive operation
+# Mac Sync Wizard Simple Installation Script
+# This script installs the Mac Sync Wizard as a single file with no module dependencies
 
 # Color codes for terminal output
 RED='\033[0;31m'
@@ -60,19 +60,9 @@ check_dependencies() {
     
     local missing_deps=()
     
-    # Check for Git
-    if ! command_exists git; then
-        missing_deps+=("git")
-    fi
-    
     # Check for Python 3
     if ! command_exists python3; then
         missing_deps+=("python3")
-    fi
-    
-    # Check for venv module
-    if ! python3 -c "import venv" &>/dev/null; then
-        missing_deps+=("python3-venv")
     fi
     
     # If there are missing dependencies, try to install them
@@ -89,9 +79,6 @@ check_dependencies() {
                 
                 # Check if installation was successful
                 if [[ "$dep" == "python3" ]] && ! command_exists python3; then
-                    print_error "Failed to install $dep"
-                    exit 1
-                elif [[ "$dep" == "git" ]] && ! command_exists git; then
                     print_error "Failed to install $dep"
                     exit 1
                 fi
@@ -118,9 +105,6 @@ check_dependencies() {
                         if [[ "$dep" == "python3" ]] && ! command_exists python3; then
                             print_error "Failed to install $dep"
                             exit 1
-                        elif [[ "$dep" == "git" ]] && ! command_exists git; then
-                            print_error "Failed to install $dep"
-                            exit 1
                         fi
                     done
                 else
@@ -144,7 +128,6 @@ create_app_structure() {
     # Create the application directory
     APP_DIR="$HOME/.mac-sync-wizard"
     mkdir -p "$APP_DIR"
-    mkdir -p "$APP_DIR/bin"
     mkdir -p "$APP_DIR/config"
     mkdir -p "$APP_DIR/logs"
     mkdir -p "$APP_DIR/repo"
@@ -152,107 +135,28 @@ create_app_structure() {
     print_success "Application directory structure created at $APP_DIR"
 }
 
-# Function to create and setup virtual environment
-setup_virtual_environment() {
-    print_step "Setting up virtual environment..."
+# Function to install the all-in-one script
+install_script() {
+    print_step "Installing Mac Sync Wizard script..."
     
-    # Create virtual environment
-    python3 -m venv "$APP_DIR/venv"
-    
-    # Check if virtual environment was created successfully
-    if [ ! -d "$APP_DIR/venv" ]; then
-        print_error "Failed to create virtual environment"
-        exit 1
-    fi
-    
-    # Activate virtual environment
-    source "$APP_DIR/venv/bin/activate"
-    
-    # Install required packages
-    print_step "Installing required packages in virtual environment..."
-    
-    # Create a temporary requirements file
-    cat > /tmp/mac-sync-requirements.txt << EOF
-rich>=12.0.0
-pyyaml>=6.0
-gitpython>=3.1.0
-schedule>=1.1.0
-EOF
-    
-    # Install dependencies
-    pip install -r /tmp/mac-sync-requirements.txt
-    
-    # Check if installation was successful
-    if [ $? -ne 0 ]; then
-        print_error "Failed to install Python dependencies in virtual environment"
-        exit 1
-    fi
-    
-    # Clean up
-    rm /tmp/mac-sync-requirements.txt
-    
-    # Deactivate virtual environment
-    deactivate
-    
-    print_success "Virtual environment setup completed"
-}
-
-# Function to download the application files
-download_app_files() {
-    print_step "Downloading application files..."
-    
-    # Create a temporary directory
-    TMP_DIR=$(mktemp -d)
-    
-    # Download the latest release
-    curl -L https://github.com/username/mac-sync-wizard/archive/main.tar.gz -o "$TMP_DIR/mac-sync-wizard.tar.gz"
-    
-    # Extract the archive
-    tar -xzf "$TMP_DIR/mac-sync-wizard.tar.gz" -C "$TMP_DIR"
-    
-    # Copy the files to the application directory
-    cp -R "$TMP_DIR/mac-sync-wizard-main/src/"* "$APP_DIR/bin/"
-    
-    # Make the main script executable
-    chmod +x "$APP_DIR/bin/mac-sync-wizard.py"
-    
-    # Clean up
-    rm -rf "$TMP_DIR"
-    
-    print_success "Application files downloaded and installed"
-}
-
-# Function to extract files from local zip
-extract_local_files() {
-    print_step "Extracting files from local package..."
-    
-    # Check if the zip file exists in the current directory
-    if [ -f "mac-sync-wizard.zip" ]; then
-        ZIP_PATH="mac-sync-wizard.zip"
-    # Check if the zip file exists in the Downloads directory
-    elif [ -f "$HOME/Downloads/mac-sync-wizard.zip" ]; then
-        ZIP_PATH="$HOME/Downloads/mac-sync-wizard.zip"
+    # Check if the script exists in the current directory
+    if [ -f "mac-sync-wizard-all-in-one.py" ]; then
+        cp "mac-sync-wizard-all-in-one.py" "$APP_DIR/mac-sync-wizard.py"
+    # Check if the script exists in the src directory
+    elif [ -f "src/mac-sync-wizard-all-in-one.py" ]; then
+        cp "src/mac-sync-wizard-all-in-one.py" "$APP_DIR/mac-sync-wizard.py"
+    # Check if the script exists in the Downloads directory
+    elif [ -f "$HOME/Downloads/mac-sync-wizard-all-in-one.py" ]; then
+        cp "$HOME/Downloads/mac-sync-wizard-all-in-one.py" "$APP_DIR/mac-sync-wizard.py"
     else
-        print_error "Could not find mac-sync-wizard.zip in current directory or Downloads folder"
+        print_error "Could not find mac-sync-wizard-all-in-one.py in current directory, src directory, or Downloads folder"
         exit 1
     fi
     
-    # Create a temporary directory
-    TMP_DIR=$(mktemp -d)
+    # Make the script executable
+    chmod +x "$APP_DIR/mac-sync-wizard.py"
     
-    # Extract the archive
-    unzip -q "$ZIP_PATH" -d "$TMP_DIR"
-    
-    # Copy the files to the application directory
-    cp -R "$TMP_DIR/src/"* "$APP_DIR/bin/"
-    
-    # Make the main script executable
-    chmod +x "$APP_DIR/bin/mac-sync-wizard.py"
-    
-    # Clean up
-    rm -rf "$TMP_DIR"
-    
-    print_success "Application files extracted and installed"
+    print_success "Mac Sync Wizard script installed"
 }
 
 # Function to create the launcher script
@@ -260,23 +164,20 @@ create_launcher() {
     print_step "Creating launcher script..."
     
     # Create the launcher script
-    cat > "$APP_DIR/bin/launcher.sh" << EOF
+    cat > "$APP_DIR/launcher.sh" << EOF
 #!/bin/bash
 # Mac Sync Wizard Launcher
-# This script activates the virtual environment and runs the application
-
-# Activate virtual environment
-source "$APP_DIR/venv/bin/activate"
+# This script runs the all-in-one Python script
 
 # Run the application
-python "$APP_DIR/bin/mac-sync-wizard.py" "\$@"
+python3 "$APP_DIR/mac-sync-wizard.py" "\$@"
 
 # Exit with the same status as the application
 exit \$?
 EOF
     
     # Make it executable
-    chmod +x "$APP_DIR/bin/launcher.sh"
+    chmod +x "$APP_DIR/launcher.sh"
     
     print_success "Launcher script created"
 }
@@ -289,7 +190,7 @@ create_executable_symlink() {
     mkdir -p "$HOME/.local/bin"
     
     # Create symlink
-    ln -sf "$APP_DIR/bin/launcher.sh" "$HOME/.local/bin/mac-sync-wizard"
+    ln -sf "$APP_DIR/launcher.sh" "$HOME/.local/bin/mac-sync-wizard"
     
     # Check if ~/.local/bin is in PATH
     if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
@@ -309,6 +210,9 @@ create_executable_symlink() {
             echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_CONFIG"
             print_warning "Added ~/.local/bin to your PATH in $SHELL_CONFIG"
             print_warning "Please restart your terminal or run: export PATH=\"$HOME/.local/bin:\$PATH\""
+            
+            # Add to current PATH for immediate use
+            export PATH="$HOME/.local/bin:$PATH"
         else
             print_warning "Could not find shell configuration file"
             print_warning "Please add ~/.local/bin to your PATH manually"
@@ -316,6 +220,38 @@ create_executable_symlink() {
     fi
     
     print_success "Executable symlink created at ~/.local/bin/mac-sync-wizard"
+}
+
+# Function to verify the installation
+verify_installation() {
+    print_step "Verifying installation..."
+    
+    # Check if the script exists
+    if [ ! -f "$APP_DIR/mac-sync-wizard.py" ]; then
+        print_error "Mac Sync Wizard script not found"
+        return 1
+    fi
+    
+    # Check if the launcher exists
+    if [ ! -f "$APP_DIR/launcher.sh" ]; then
+        print_error "Launcher script not found"
+        return 1
+    fi
+    
+    # Check if the symlink exists
+    if [ ! -L "$HOME/.local/bin/mac-sync-wizard" ]; then
+        print_error "Executable symlink not found"
+        return 1
+    fi
+    
+    # Try to run the script with --help
+    if ! "$HOME/.local/bin/mac-sync-wizard" help > /dev/null 2>&1; then
+        print_error "Failed to run Mac Sync Wizard"
+        return 1
+    fi
+    
+    print_success "Installation verified successfully"
+    return 0
 }
 
 # Function to run the initial setup
@@ -346,21 +282,21 @@ install_mac_sync_wizard() {
     # Create the application directory structure
     create_app_structure
     
-    # Setup virtual environment
-    setup_virtual_environment
-    
-    # Extract files from local zip or download them
-    if [ -f "mac-sync-wizard.zip" ] || [ -f "$HOME/Downloads/mac-sync-wizard.zip" ]; then
-        extract_local_files
-    else
-        download_app_files
-    fi
+    # Install the script
+    install_script
     
     # Create the launcher script
     create_launcher
     
     # Create the executable symlink
     create_executable_symlink
+    
+    # Verify the installation
+    verify_installation
+    if [ $? -ne 0 ]; then
+        print_error "Installation verification failed"
+        exit 1
+    fi
     
     # Ask if the user wants to run the initial setup
     read -p "Would you like to run the initial setup now? (y/n) " -n 1 -r
