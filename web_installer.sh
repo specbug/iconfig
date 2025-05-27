@@ -56,8 +56,11 @@ echo -e "${BLUE}Extracting files...${NC}"
 if command -v unzip &> /dev/null; then
     unzip -q iconfig.zip
     rm iconfig.zip
-    mv "$REPO_NAME-$BRANCH"/* .
-    rmdir "$REPO_NAME-$BRANCH"
+    # Move all files including hidden ones
+    mv "$REPO_NAME-$BRANCH"/* . 2>/dev/null || true
+    mv "$REPO_NAME-$BRANCH"/.[^.]* . 2>/dev/null || true
+    # Remove the now-empty directory
+    rm -rf "$REPO_NAME-$BRANCH"
 elif command -v tar &> /dev/null; then
     # Some systems might not have unzip but have tar
     echo -e "${YELLOW}unzip not found, trying alternative method...${NC}"
@@ -66,8 +69,11 @@ elif command -v tar &> /dev/null; then
     curl -fsSL "https://github.com/$REPO_OWNER/$REPO_NAME/archive/refs/heads/$BRANCH.tar.gz" -o iconfig.tar.gz
     tar -xzf iconfig.tar.gz
     rm iconfig.tar.gz
-    mv "$REPO_NAME-$BRANCH"/* .
-    rmdir "$REPO_NAME-$BRANCH"
+    # Move all files including hidden ones
+    mv "$REPO_NAME-$BRANCH"/* . 2>/dev/null || true
+    mv "$REPO_NAME-$BRANCH"/.[^.]* . 2>/dev/null || true
+    # Remove the now-empty directory
+    rm -rf "$REPO_NAME-$BRANCH"
 else
     echo -e "${RED}Error: Neither unzip nor tar found. Please install one of them.${NC}"
     exit 1
