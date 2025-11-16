@@ -2,43 +2,49 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-# === Configuration — edit for your environment ===
+# === Configuration: edit these as needed ===
 REPO_DIR="$HOME/Documents/Personal/iconfig"
 BACKUP_ITEMS=(
-  ".config/ghostty"
-  ".config/zellij"
-  # add more relative paths under $HOME as needed
+  "$HOME/.config/ghostty"
+  "$HOME/.config/zellij"
+  # add more absolute source paths as needed
 )
 GIT_REMOTE="origin"
 GIT_BRANCH="ghostty"
 
-# === Navigate to repo and update ===
+# === Pull latest & ensure repo exists ===
+if [ ! -d "$REPO_DIR/.git" ]; then
+  echo "ERROR: $REPO_DIR is not a git repository."
+  exit 1
+fi
+
 cd "$REPO_DIR"
-echo "Pulling latest from remote..."
+echo "Updating repo from remote..."
 git pull "$GIT_REMOTE" "$GIT_BRANCH"
 
-# === Copy each item from home into repo ===
-for rel in "${BACKUP_ITEMS[@]}"; do
-  src="$HOME/$rel"
-  dst="$REPO_DIR/$rel"
-
+# === Copy items into repo with non-dot folder names ===
+for src in "${BACKUP_ITEMS[@]}"; do
   if [ ! -e "$src" ]; then
-    echo "Warning: source '$src' does not exist — skipping"
+    echo "WARNING: source $src does not exist — skipping."
     continue
   fi
 
+  # e.g. src="/home/user/.config/ghostty"
+  rel_path="${src/#$HOME\/\.config\//}"   # removes /home/user/.config/
+  # So rel_path becomes "ghostty"
+  dst="$REPO_DIR/config-home/${rel_path}"
+
   echo "Backing up $src → $dst"
+
   mkdir -p "$(dirname "$dst")"
   rm -rf "$dst"
   cp -a "$src" "$dst"
 done
 
-# === Ensure Git will track the backup items ===
-# We assume you have already fixed .gitignore as per instructions
-
-# === Commit & push changes ===
+# === Commit & push ===
+cd "$REPO_DIR"
 git add .
-git commit -m "Backup configs: $(date +'%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
+git commit -m "Backup configs: $(date +'%Y-%m-d %H:%M:%S')"
 git push "$GIT_REMOTE" "$GIT_BRANCH"
 
 echo "Backup complete."
