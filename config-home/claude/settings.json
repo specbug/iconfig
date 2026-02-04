@@ -1,0 +1,141 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cloudwatch:*)"
+    ]
+  },
+  "model": "opus",
+  "statusLine": {
+    "type": "command",
+    "command": "d=$(basename \"$(pwd)\"); g=\"\"; if git rev-parse --git-dir >/dev/null 2>&1; then b=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null); if [ -n \"$b\" ]; then g=$(printf \" \\033[36m(%s)\\033[0m\" \"$b\"); fi; fi; v=\"\"; if [ -n \"$VIRTUAL_ENV\" ]; then v=$(printf \" \\033[32m(%s)\\033[0m\" \"$(basename \"$VIRTUAL_ENV\")\"); elif [ -n \"$CONDA_DEFAULT_ENV\" ]; then v=$(printf \" \\033[32m(%s)\\033[0m\" \"$CONDA_DEFAULT_ENV\"); fi; printf \"\\033[2m%s@%s\\033[0m \\033[34m%s\\033[0m%s%s\" \"$(whoami)\" \"$(hostname -s)\" \"$d\" \"$g\" \"$v\""
+  },
+  "enabledPlugins": {
+    "pr-review-toolkit@claude-code-plugins": true,
+    "agent-sdk-dev@claude-code-plugins": true,
+    "commit-commands@claude-code-plugins": true,
+    "ralph-loop@claude-plugins-official": true
+  },
+  "alwaysThinkingEnabled": true,
+  "spinnerVerbs": {
+    "mode": "replace",
+    "verbs": [
+      "SCIENCE!-ing",
+      "Updating priors",
+      "Applying Bayes",
+      "Noticing confusion",
+      "Making beliefs pay rent",
+      "Steelmanning",
+      "Noticing skulls",
+      "Reversing stupidity",
+      "Calibrating",
+      "Approximating CEV",
+      "Consulting dark side",
+      "Level 3 plotting",
+      "Going one higher",
+      "Time-turning",
+      "Quirrelling",
+      "Outside viewing",
+      "Trying finger, but hole",
+      "Touching grace",
+      "Git gud",
+      "Vigor checking",
+      "Hidden path ahead",
+      "Liar ahead",
+      "Fort, night",
+      "Summoning mimic",
+      "Reading item lore",
+      "Try jumping",
+      "Message appraising",
+      "Rune farming",
+      "Parrying it",
+      "Quoting papa",
+      "For those who come after",
+      "Taking hobbits to Isengard",
+      "Simply walking in",
+      "Petting the precious",
+      "Tossing dwarves",
+      "Boiling 'em, mashing 'em",
+      "Scarf wrapping",
+      "Rumbling",
+      "Reaching the basement",
+      "Tatakae-ing",
+      "Morse coding gravity",
+      "Transcending spacetime",
+      "Setting humor to 75%",
+      "Come on, TARS",
+      "Ding ding ding-ing",
+      "Adjusting tie",
+      "Bitch-ing",
+      "Cooking, Jesse",
+      "Knocking",
+      "Eating apples",
+      "Just as planned",
+      "Taking a potato chip",
+      "Questioning authority",
+      "Advertising courier services",
+      "Achieving perfect run",
+      "Quicksaving",
+      "Aranea networking",
+      "Noting for next loop",
+      "Refining macro data",
+      "Praising Kier",
+      "Meaning emerging",
+      "Self-referencing",
+      "Strange looping",
+      "Amaze!-ing",
+      "Running Crysis",
+      "Maximum armor",
+      "Bonfire lit",
+      "Praising the sun",
+      "Mikiri countering",
+      "Henry's come to see us",
+      "Reading in progress",
+      "Jesus Christ be praised",
+      "Feeling quite hungry",
+      "Petting Cerberus",
+      "Dragging",
+      "Rushing",
+      "Not quite my tempo",
+      "Soul editing",
+      "Leveling up",
+      "Min-maxing",
+      "Shard communicating",
+      "\"I can explain\"",
+      "Being reasonable",
+      "Double jumping",
+      "Putting ambitions to rest",
+      "Grafting",
+      "Defeating Malenia",
+      "Solo'ing her",
+      "Behold, dog!",
+      "Remembrall glowing",
+      "Drinking Comed-Tea",
+      "Breaking into Azkaban",
+      "Solving death"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "afplay /System/Library/Sounds/Hero.aiff"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "afplay /System/Library/Sounds/Submarine.aiff"
+          }
+        ]
+      }
+    ]
+  }
+}
