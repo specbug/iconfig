@@ -7,6 +7,7 @@ REPO_DIR="$HOME/Documents/Personal/iconfig"
 BACKUP_ITEMS=(
   "$HOME/.config/ghostty"
   "$HOME/.config/zellij"
+  "$HOME/.config/zsh"
   # add more absolute source paths as needed
 )
 GIT_REMOTE="origin"

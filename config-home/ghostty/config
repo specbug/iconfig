@@ -1,10 +1,92 @@
-window-inherit-working-directory = true
-macos-option-as-alt = true
+# =============================================================================
+# Ghostty Configuration
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Font Settings
+# -----------------------------------------------------------------------------
 font-family = "R Plex Mono"
 font-size = 19.0
 font-thicken = true
 font-thicken-strength = 70
 
-# Theme (built-in)
+# Fallback fonts for symbols/icons
+font-family-bold = "R Plex Mono"
+font-family-italic = "R Plex Mono"
+
+# -----------------------------------------------------------------------------
+# Theme & Colors
+# -----------------------------------------------------------------------------
 theme = ayu
+
+# Cursor appearance
+cursor-style = block
+cursor-style-blink = false
+
+# Selection colors (uses theme defaults)
+selection-invert-fg-bg = true
+
+# -----------------------------------------------------------------------------
+# Window Settings
+# -----------------------------------------------------------------------------
+window-inherit-working-directory = true
+window-padding-x = 8
+window-padding-y = 4
+window-padding-balance = true
+window-decoration = true
+
+# Confirm before closing with running processes
+confirm-close-surface = true
+
+# -----------------------------------------------------------------------------
+# Terminal Behavior
+# -----------------------------------------------------------------------------
+# Scrollback buffer (lines)
+scrollback-limit = 50000
+
+# Shell integration for better prompt detection
+shell-integration = detect
+
+# Copy/paste behavior
+clipboard-read = allow
+clipboard-write = allow
+clipboard-trim-trailing-spaces = true
+copy-on-select = true
+
+# Mouse behavior
+mouse-hide-while-typing = true
+focus-follows-mouse = false
+
+# -----------------------------------------------------------------------------
+# macOS Specific
+# -----------------------------------------------------------------------------
+macos-option-as-alt = true
+macos-titlebar-style = transparent
+macos-window-shadow = true
+
+# Quick terminal (global hotkey)
+# keybind = global:cmd+grave_accent=toggle_quick_terminal
+
+# -----------------------------------------------------------------------------
+# Keybindings
+# -----------------------------------------------------------------------------
+# Send escape+enter for shell integration
 keybind = shift+enter=text:\x1b\r
+
+# Quick navigation
+keybind = cmd+shift+left=previous_tab
+keybind = cmd+shift+right=next_tab
+keybind = cmd+t=new_tab
+keybind = cmd+w=close_surface
+
+# Split management (when not using zellij)
+keybind = cmd+d=new_split:right
+keybind = cmd+shift+d=new_split:down
+
+# Font size adjustments
+keybind = cmd+plus=increase_font_size:1
+keybind = cmd+minus=decrease_font_size:1
+keybind = cmd+0=reset_font_size
+
+# Clear screen
+keybind = cmd+k=clear_screen

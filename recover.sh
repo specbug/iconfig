@@ -7,6 +7,7 @@ REPO_DIR="$HOME/Documents/Personal/iconfig"
 RESTORE_ITEMS=(
   "ghostty"
   "zellij"
+  "zsh"
   # these correspond to sub-folders under repo/config-home
 )
 
