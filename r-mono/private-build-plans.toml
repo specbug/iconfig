@@ -1,0 +1,361 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# R Mono — A custom Iosevka build
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# Design philosophy:
+#
+#   "Less, but better."                        — Dieter Rams
+#   "Circles and rectangles; heavy lines       — Andy Matuschak / Orbit
+#    and negative space."
+#   "Simplified forms, increased x-height."    — JetBrains Mono
+#   "Softened terminals on a geometric base."  — Google Sans Text
+#
+# Aesthetic lineage:
+#   JetBrains Mono (foundation) + IBM Plex Mono (mechanical warmth)
+#   + Monaspace Neon (neo-grotesque clarity) + Google Sans Text (soft geometry)
+#   + SF Pro Mono (Apple-grade polish)
+#
+# Filtered through Dieter Rams' ten principles and Andy Matuschak's
+# geometric design language: every stroke serves readability,
+# purposeful tension between round and rectilinear forms,
+# generous negative space, disciplined simplicity.
+#
+# ─── Build Instructions ───────────────────────────────────────────────
+#
+#   git clone --depth 1 https://github.com/be5invis/Iosevka.git
+#   cd Iosevka
+#   cp /path/to/private-build-plans.toml .
+#   npm install
+#   npm run build -- contents::RMono
+#
+#   Output: dist/RMono/TTF/  (or dist/RMono/WOFF2/ for web)
+#
+#   To patch with Nerd Fonts (icons for terminal):
+#     git clone --depth 1 https://github.com/ryanoasis/nerd-fonts.git
+#     cd nerd-fonts
+#     ./font-patcher /path/to/RMono-Regular.ttf --complete
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[buildPlans.RMono]
+family = "R Mono"
+spacing = "term"            # Terminal-safe: narrows wide symbols, preserves ligatures
+serifs = "sans"             # Sans-serif — clean geometric aesthetic
+noCvSs = true               # Bake in all variant choices (smaller files)
+exportGlyphNames = true     # Ligature support in Kitty / some terminals
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# CHARACTER VARIANTS
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Base: ss14 (JetBrains Mono) — proven readability, high x-height,
+# simplified letterforms, pixel-grid-optimized stroke endings.
+#
+# Then we sculpt: softening geometry where JB Mono is too rigid,
+# adding warmth where it's too clinical, maintaining its strengths
+# everywhere else.
+
+  [buildPlans.RMono.variants]
+    inherits = "ss14"
+
+  [buildPlans.RMono.variants.design]
+
+    # ── Lowercase ─────────────────────────────────────────────────────
+    #
+    # The lowercase is where you spend 80% of your reading time.
+    # Every choice here prioritizes scan speed and disambiguation.
+    #
+    # NOTE: Keys are short names (a, g, l) not lower-a, lower-g, etc.
+    # Only Greek/Cyrillic use the lower- prefix.
+
+    # 'a' — Double-storey with toothless corner join.
+    # The smooth toothless connection between bowl and stem softens the
+    # geometry (Google Sans warmth) while the double-storey form maintains
+    # clear disambiguation from 'o'. Orbit's "circles meeting rectangles."
+    a = "double-storey-toothless-corner"
+
+    # 'g' — Single-storey, serifless.
+    # One clean bowl + descender. Rams: remove what isn't necessary.
+    # Simpler descender than ss14's flat-hook variant.
+    g = "single-storey-serifless"
+
+    # 'i' — Serifed flat-tailed (matches 'l').
+    # Visual consistency: i and l share the same flat tail language.
+    # ss14 default is plain "serifed" — we override to match l's flat tail.
+    i = "serifed-flat-tailed"
+
+    # 'l' — Already serifed-flat-tailed in ss14. No override needed.
+    # The flat tail clearly distinguishes from '1' and 'I'.
+
+    # 't' — Flat hook.
+    # Clean geometric terminal. ss14 uses flat-hook-short-neck;
+    # we use standard neck for a slightly more open, readable form.
+    t = "flat-hook"
+
+    # 'f' — Flat hook, serifless. (Same as ss14 — kept for documentation.)
+    f = "flat-hook-serifless"
+
+    # 'y' — Straight turn, serifless.
+    # Geometric descent with a purposeful turn at baseline.
+    # ss14 uses straight-serifless; we add the turn for a softer landing.
+    y = "straight-turn-serifless"
+
+    # 'r' — Hookless, serifless.
+    # Removes the traditional hook entirely — pure geometric simplicity.
+    # A Rams-inspired "less but better" choice: just the stem and shoulder.
+    r = "hookless-serifless"
+
+    # 'q' — Straight descender, serifless.
+    # Geometric, clearly distinct from 'g'.
+    q = "straight-serifless"
+
+    # ── Uppercase ─────────────────────────────────────────────────────
+
+    # 'I' — Serifed. (Same as ss14 — critical 1/l/I disambiguation.)
+    capital-i = "serifed"
+
+    # 'G' — Toothed, serifless, hooked.
+    # The crossbar spur (tooth) clarifies G vs C at small sizes.
+    # ss14 uses toothless-rounded; we add the tooth for clarity.
+    capital-g = "toothed-serifless-hooked"
+
+    # ── Digits ────────────────────────────────────────────────────────
+    #
+    # Digits appear constantly in code. Each must be instantly
+    # recognizable, even at 10px in a dense terminal.
+
+    # '0' — Dotted. (Same as ss14.)
+    zero = "dotted"
+
+    # '1' — Base + flat top serif.
+    # The base grounds the character; the flat top flag disambiguates.
+    # ss14 uses plain "base"; we add the flat-top-serif for extra clarity.
+    one = "base-flat-top-serif"
+
+    # '4' — Closed, serifless.
+    # Fully enclosed top creates a clean geometric shape.
+    four = "closed-serifless"
+
+    # '6' — Closed contour.
+    # Complete loop. Geometric. ss14 uses straight-bar; we close it.
+    six = "closed-contour"
+
+    # '9' — Closed contour.
+    # Mirrors '6'. Visual symmetry in the digit set.
+    nine = "closed-contour"
+
+    # ── Symbols & Punctuation ─────────────────────────────────────────
+
+    # '*' — Hexagonal, low position.
+    # Six-pointed hex = geometric purity. Low position aligns
+    # with operators. ss14 uses penta-low; we go hex for geometry.
+    asterisk = "hex-low"
+
+    # '@' — Compact form.
+    # Less visual noise in decorators, emails, mentions.
+    at = "compact"
+
+    # '~' — Low position.
+    # Better vertical alignment with operators (~=, ~>, etc).
+    tilde = "low"
+
+    # '&' — Closed form.
+    # Simple, geometric. ss14 uses upper-open; we close it.
+    ampersand = "closed"
+
+    # Pilcrow (paragraph sign) — Low.
+    pilcrow = "low"
+
+
+  # ── Italic-specific overrides ──────────────────────────────────────
+  #
+  # Restrained italics: JetBrains Mono's insight was that only THREE
+  # characters need true italic construction (a, f, y). Everything
+  # else simply slants. This minimizes cognitive disruption when
+  # scanning italic comments/keywords amid upright code.
+  #
+  # Rams principle #6: "Good design is unobtrusive."
+
+  [buildPlans.RMono.variants.italic]
+    # 'a' switches to single-storey in italics.
+    # Instant visual signal: "this is italic." Clean, one-stroke form.
+    a = "single-storey-tailed"
+
+    # 'f' gains a tail in italics.
+    # Subtle cursive touch — the one moment of calligraphic warmth.
+    f = "flat-hook-tailed"
+
+    # 'y' goes cursive in italics.
+    # The looped descender differentiates from upright 'y'.
+    y = "cursive-serifless"
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# LIGATURES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Full ligature set. Ligatures reduce visual parsing overhead:
+# -> becomes a proper arrow, != becomes a proper not-equal.
+#
+# default-calt includes: arrows (->  =>  <-  <=>), equality (== === !=),
+# comparison (<= >=), pipes (|>), HTML comments (<!-- -->), and more.
+
+[buildPlans.RMono.ligations]
+  inherits = "default-calt"
+
+  # Additional ligature groups for maximum expressiveness.
+  # Remove any group name from 'enables' if it interferes with your workflow.
+  enables  = [
+    "underscore-underscore",    # __ ___ renders as continuous line
+    "minus-minus",              # -- --- renders as solid rule
+    "hash-hash",                # ## ### renders as connected mesh
+  ]
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# WEIGHTS
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Full weight range. Use Regular (400) for code, Medium (500) for
+# UI labels, Bold (700) for emphasis. Thin/Light for display sizes.
+#
+# The weight range enables the "heavy lines and negative space"
+# contrast from the Orbit design language when used at display sizes.
+
+  [buildPlans.RMono.weights.Thin]
+    shape = 100
+    menu = 100
+    css = 100
+
+  [buildPlans.RMono.weights.ExtraLight]
+    shape = 200
+    menu = 200
+    css = 200
+
+  [buildPlans.RMono.weights.Light]
+    shape = 300
+    menu = 300
+    css = 300
+
+  [buildPlans.RMono.weights.Regular]
+    shape = 400
+    menu = 400
+    css = 400
+
+  [buildPlans.RMono.weights.Medium]
+    shape = 500
+    menu = 500
+    css = 500
+
+  [buildPlans.RMono.weights.SemiBold]
+    shape = 600
+    menu = 600
+    css = 600
+
+  [buildPlans.RMono.weights.Bold]
+    shape = 700
+    menu = 700
+    css = 700
+
+  [buildPlans.RMono.weights.ExtraBold]
+    shape = 800
+    menu = 800
+    css = 800
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# WIDTHS
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Standard width (600 units) — matches JetBrains Mono's comfortable
+# spacing. Iosevka's default (500) is too narrow for long sessions.
+#
+# 600 gives each character room to breathe. Generous counter-forms.
+# Rams principle #2: "Good design makes a product useful."
+# A font you can't read comfortably for 8 hours isn't useful.
+
+  [buildPlans.RMono.widths.Normal]
+    shape = 600
+    menu = 5
+    css = "normal"
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# SLOPES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 9.4-degree italic — restrained, like JetBrains Mono's 9-degree approach.
+# Standard italic fonts use 11-12 degrees. The shallow angle maintains
+# readable contrast between upright and italic without jarring disruption.
+#
+# When you scan code, italic comments should whisper, not shout.
+
+  [buildPlans.RMono.slopes.Upright]
+    angle = 0
+    shape = "upright"
+    menu = "upright"
+    css = "normal"
+
+  [buildPlans.RMono.slopes.Italic]
+    angle = 9.4
+    shape = "italic"
+    menu = "italic"
+    css = "italic"
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# DESIGN RATIONALE SUMMARY
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# What makes R Mono different from stock JetBrains Mono (ss14):
+#
+# 1. SOFTENED GEOMETRY
+#    The toothless-rounded 'a' bowl connection is the font's signature.
+#    Where JB Mono meets its stem at a sharp angle, R Mono flows.
+#    This echoes Google Sans Text and Orbit's circle/rectangle interplay.
+#
+# 2. CONSISTENT TERMINAL LANGUAGE
+#    All hooks are flat (t, f, i, l). All tails are flat.
+#    This creates a unified geometric vocabulary — every terminus
+#    speaks the same visual dialect.
+#
+# 3. RESTRAINED ITALIC DIFFERENTIATION
+#    Only a/f/y change form in italics. JB Mono's insight, preserved.
+#    Italic 'a' goes single-storey: maximum signal, minimum noise.
+#
+# 4. CLOSED DIGIT FORMS
+#    4, 6, 9 are closed contours. More geometric, less ambiguous.
+#    The digit set reads as a cohesive family.
+#
+# 5. COMPACT SYMBOLS
+#    Short @, low ~, hex *, compact r.
+#    Code is dense with symbols — they should be clear but not loud.
+#
+# 6. STANDARD WIDTH
+#    600 units vs Iosevka's 500 default.
+#    Readability over density. Your eyes will thank you at hour 6.
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# TUNING NOTES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# After building and living with R Mono, consider tweaking:
+#
+# - WIDTH: Try shape = 576 for slightly tighter, or 620 for airier.
+#   JB Mono is ~600, SF Mono is ~590, IBM Plex Mono is ~620.
+#
+# - LIGATURES: If any ligature surprises you in context, disable
+#   specific groups. Or switch inherits to "clike" or "javascript"
+#   for language-specific subsets.
+#
+# - WEIGHT FOR DARK MODE: If Regular (400) feels thin on dark
+#   backgrounds, try Medium (500) as your editor font weight.
+#   This is the Commit Mono insight (400 for light, 450 for dark).
+#
+# - ITALIC ANGLE: Try 7.0 for even more restrained italics,
+#   or 11.0 for more traditional contrast.
+#
+# - SINGLE-STOREY 'a' EVERYWHERE: If you prefer the geometric
+#   purity of single-storey 'a' in upright too, change lower-a
+#   to "single-storey-serifless" in [variants.design].
+#
+# - NERD FONTS: After building, patch with Nerd Fonts for terminal
+#   icons: ./font-patcher RMono-Regular.ttf --complete
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
