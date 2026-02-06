@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>R Sans — Type Specimen & Feature Lab</title>
+<style>
+  /* ── Font Loading ───────────────────────────────────────────── */
+  @font-face {
+    font-family: 'R Sans';
+    src: url('r-sans/web-fonts/RSans-Variable.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'R Sans';
+    src: url('r-sans/web-fonts/RSans-Italic-Variable.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: italic;
+  }
+  @font-face {
+    font-family: 'R Mono';
+    src: url('r-mono/web-fonts/RMono-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'R Mono';
+    src: url('r-mono/web-fonts/RMono-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'R Mono';
+    src: url('r-mono/web-fonts/RMono-Italic.woff2') format('woff2');
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  /* ── Base ────────────────────────────────────────────────────── */
+  :root {
+    --bg: #fafaf9;
+    --bg-alt: #f0efed;
+    --fg: #1c1917;
+    --fg-dim: #57534e;
+    --fg-faint: #a8a29e;
+    --accent: #d97706;
+    --border: #e7e5e4;
+    --radius: 8px;
+    --specimen-font: 'R Sans', system-ui, sans-serif;
+  }
+  .dark {
+    --bg: #18181b;
+    --bg-alt: #27272a;
+    --fg: #fafaf9;
+    --fg-dim: #a1a1aa;
+    --fg-faint: #52525b;
+    --accent: #fbbf24;
+    --border: #3f3f46;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--specimen-font);
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.6;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ── Layout ─────────────────────────────────────────────────── */
+  .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg-alt);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    backdrop-filter: blur(12px);
+  }
+  .toolbar-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toolbar label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--fg-dim);
+    cursor: pointer;
+    user-select: none;
+  }
+  .toolbar input[type="range"] {
+    width: 120px;
+    accent-color: var(--accent);
+  }
+  .toolbar .weight-val {
+    font-family: 'R Mono', monospace;
+    font-size: 12px;
+    min-width: 28px;
+    color: var(--accent);
+  }
+  .toolbar button {
+    padding: 4px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--fg);
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'R Mono', monospace;
+  }
+  .toolbar button:hover { border-color: var(--accent); }
+  .toolbar button.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 24px;
+  }
+
+  section {
+    margin-bottom: 64px;
+  }
+  section > .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--fg-faint);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'R Mono', monospace;
+  }
+
+  /* ── Feature Toggles Panel ──────────────────────────────────── */
+  .features-panel {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 48px;
+  }
+  .features-panel h3 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--fg-dim);
+    margin-bottom: 16px;
+  }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 8px;
+  }
+  .feature-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .feature-toggle:hover { background: var(--bg); }
+  .feature-toggle input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 16px;
+    height: 16px;
+  }
+  .feature-toggle .ft-tag {
+    font-family: 'R Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 36px;
+  }
+  .feature-toggle .ft-desc {
+    font-size: 13px;
+    color: var(--fg-dim);
+  }
+  .feature-toggle .ft-preview {
+    margin-left: auto;
+    font-size: 16px;
+    color: var(--fg);
+    font-family: var(--specimen-font);
+  }
+  .feature-toggle.is-frozen {
+    opacity: 0.5;
+  }
+  .feature-toggle.is-frozen .ft-tag::after {
+    content: ' ✓';
+    font-size: 9px;
+  }
+  .preset-bar {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .preset-bar button {
+    padding: 4px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--fg);
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'R Mono', monospace;
+  }
+  .preset-bar button:hover { border-color: var(--accent); }
+
+  /* ── Specimen Styles ────────────────────────────────────────── */
+  .specimen {
+    font-family: var(--specimen-font);
+  }
+
+  .hero-text {
+    font-size: 72px;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+  }
+  .hero-sub {
+    font-size: 24px;
+    font-weight: 300;
+    color: var(--fg-dim);
+    letter-spacing: -0.01em;
+  }
+
+  .waterfall h1 { font-size: 48px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; margin-bottom: 12px; }
+  .waterfall h2 { font-size: 36px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 12px; }
+  .waterfall h3 { font-size: 28px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.25; margin-bottom: 12px; }
+  .waterfall h4 { font-size: 22px; font-weight: 500; line-height: 1.3; margin-bottom: 12px; }
+  .waterfall h5 { font-size: 18px; font-weight: 500; line-height: 1.35; margin-bottom: 12px; }
+  .waterfall h6 { font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-dim); margin-bottom: 12px; }
+
+  .body-text p {
+    font-size: 17px;
+    line-height: 1.65;
+    margin-bottom: 16px;
+    max-width: 65ch;
+  }
+  .body-text em { font-style: italic; }
+  .body-text strong { font-weight: 700; }
+
+  blockquote {
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    margin: 24px 0;
+    background: var(--bg-alt);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 18px;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--fg-dim);
+    line-height: 1.6;
+  }
+  blockquote cite {
+    display: block;
+    margin-top: 8px;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 600;
+    color: var(--fg-faint);
+  }
+
+  .list-demo ul, .list-demo ol {
+    padding-left: 24px;
+    margin-bottom: 16px;
+    font-size: 17px;
+    line-height: 1.65;
+  }
+  .list-demo li { margin-bottom: 6px; }
+
+  .small-text { font-size: 13px; color: var(--fg-dim); line-height: 1.6; max-width: 55ch; }
+  .caption-text { font-size: 11px; color: var(--fg-faint); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+
+  .code-block {
+    font-family: 'R Mono', monospace;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    font-size: 14px;
+    line-height: 1.7;
+    overflow-x: auto;
+    margin: 16px 0;
+  }
+  .inline-code {
+    font-family: 'R Mono', monospace;
+    background: var(--bg-alt);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.88em;
+  }
+
+  /* ── Glyph Grid ─────────────────────────────────────────────── */
+  .glyph-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+    gap: 4px;
+  }
+  .glyph-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    border-radius: 4px;
+    background: var(--bg-alt);
+    transition: transform 0.1s;
+  }
+  .glyph-cell:hover {
+    transform: scale(1.3);
+    background: var(--accent);
+    color: #000;
+  }
+
+  /* ── Weight Ramp ────────────────────────────────────────────── */
+  .weight-ramp {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .weight-ramp-row {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+  .weight-ramp-label {
+    font-family: 'R Mono', monospace;
+    font-size: 11px;
+    color: var(--fg-faint);
+    min-width: 80px;
+    text-align: right;
+  }
+  .weight-ramp-text {
+    font-size: 24px;
+    line-height: 1.5;
+  }
+
+  /* ── Comparison ─────────────────────────────────────────────── */
+  .comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .comparison-card {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .comparison-card h4 {
+    font-family: 'R Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--fg-faint);
+    margin-bottom: 12px;
+  }
+  .comparison-card .comp-text {
+    font-size: 22px;
+    line-height: 1.55;
+  }
+  .comp-rsans { font-family: 'R Sans', sans-serif; }
+  .comp-system { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .comp-arial { font-family: Arial, Helvetica, sans-serif; }
+  .comp-inter { font-family: 'Inter', sans-serif; }
+
+  /* ── Pangram Block ──────────────────────────────────────────── */
+  .pangram-block {
+    font-size: 32px;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    margin-bottom: 16px;
+  }
+
+  /* ── Diagnostic Characters ──────────────────────────────────── */
+  .diag-row {
+    display: flex;
+    align-items: baseline;
+    gap: 24px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .diag-chars {
+    font-size: 36px;
+    letter-spacing: 0.05em;
+    min-width: 200px;
+  }
+  .diag-label {
+    font-family: 'R Mono', monospace;
+    font-size: 12px;
+    color: var(--fg-faint);
+  }
+
+  /* ── Article Demo ───────────────────────────────────────────── */
+  .article-demo { max-width: 65ch; }
+  .article-demo h2 { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .article-demo .byline { font-size: 14px; color: var(--fg-faint); margin-bottom: 24px; }
+  .article-demo .lede { font-size: 20px; font-weight: 400; line-height: 1.55; color: var(--fg-dim); margin-bottom: 20px; }
+  .article-demo p { font-size: 17px; line-height: 1.7; margin-bottom: 16px; }
+  .article-demo h3 { font-size: 22px; font-weight: 600; margin: 32px 0 12px; }
+
+  /* ── Utilities ──────────────────────────────────────────────── */
+  .mt-8 { margin-top: 8px; }
+  .mt-16 { margin-top: 16px; }
+  .mt-24 { margin-top: 24px; }
+  .mb-8 { margin-bottom: 8px; }
+  .gap-24 { gap: 24px; }
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+
+  /* ── Feature CSS output ─────────────────────────────────────── */
+  #feature-css-output {
+    font-family: 'R Mono', monospace;
+    font-size: 11px;
+    color: var(--fg-faint);
+    margin-top: 12px;
+    padding: 8px 10px;
+    background: var(--bg);
+    border-radius: 4px;
+    word-break: break-all;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TOOLBAR
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="toolbar">
+  <div class="toolbar-section">
+    <label>Weight</label>
+    <input type="range" id="weight-slider" min="100" max="900" value="400" step="1">
+    <span class="weight-val" id="weight-val">400</span>
+  </div>
+  <div class="toolbar-section">
+    <label>Size</label>
+    <input type="range" id="size-slider" min="10" max="72" value="17" step="1">
+    <span class="weight-val" id="size-val">17</span>
+  </div>
+  <div class="toolbar-section" style="margin-left: auto;">
+    <button id="theme-toggle" onclick="toggleTheme()">Dark</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ── Hero ──────────────────────────────────────────────────── -->
+  <section>
+    <div class="specimen">
+      <div class="hero-text">R Sans</div>
+      <div class="hero-sub">A proportional sans-serif with geometric warmth.</div>
+    </div>
+  </section>
+
+  <!-- ── Feature Lab ───────────────────────────────────────────── -->
+  <section>
+    <div class="section-label">Feature Lab — toggle OpenType features in real time</div>
+    <div class="features-panel">
+      <h3>Character Variants & Stylistic Sets</h3>
+      <div class="features-grid" id="features-grid">
+        <!-- Populated by JS -->
+      </div>
+      <div class="preset-bar">
+        <button onclick="applyPreset('current')">Current Build</button>
+        <button onclick="applyPreset('refined')">Refined (recommended)</button>
+        <button onclick="applyPreset('geometric')">Max Geometric</button>
+        <button onclick="applyPreset('none')">Stock Inter</button>
+      </div>
+      <div id="feature-css-output"></div>
+    </div>
+  </section>
+
+  <!-- ── Diagnostic Characters ─────────────────────────────────── -->
+  <section>
+    <div class="section-label">Diagnostic — characters that define personality</div>
+    <div class="specimen">
+      <div class="diag-row">
+        <div class="diag-chars">a g l t f</div>
+        <div class="diag-label">Key lowercase — single-storey 'a' is the signature move</div>
+      </div>
+      <div class="diag-row">
+        <div class="diag-chars">I l 1 | ! i</div>
+        <div class="diag-label">Disambiguation set — must be instantly distinguishable</div>
+      </div>
+      <div class="diag-row">
+        <div class="diag-chars">0 O o Q</div>
+        <div class="diag-label">Zero vs. letters</div>
+      </div>
+      <div class="diag-row">
+        <div class="diag-chars">G g 3 6 9 u</div>
+        <div class="diag-label">Variant-affected glyphs</div>
+      </div>
+      <div class="diag-row">
+        <div class="diag-chars">1 2 3 4 5 6 7 8 9 0</div>
+        <div class="diag-label">Digit set — should feel cohesive</div>
+      </div>
+      <div class="diag-row">
+        <div class="diag-chars">" " ' ' « »</div>
+        <div class="diag-label">Quotation marks — round vs angular</div>
+      </div>
+      <div class="diag-row">
+        <div class="diag-chars">fi fl ff ffi fft</div>
+        <div class="diag-label">Discretionary ligatures (dlig)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Pangrams ──────────────────────────────────────────────── -->
+  <section>
+    <div class="section-label">Pangrams</div>
+    <div class="specimen">
+      <div class="pangram-block">The quick brown fox jumps over the lazy dog.</div>
+      <div class="pangram-block" style="font-style: italic;">The quick brown fox jumps over the lazy dog.</div>
+      <div class="pangram-block" style="font-weight: 700;">The quick brown fox jumps over the lazy dog.</div>
+      <div class="pangram-block" style="font-weight: 700; font-style: italic;">The quick brown fox jumps over the lazy dog.</div>
+      <div class="pangram-block" style="font-weight: 300;">Grumpy wizards make toxic brew for the evil queen and jack.</div>
+      <div class="pangram-block" style="font-weight: 500;">Pack my box with five dozen liquor jugs. 0123456789</div>
+    </div>
+  </section>
+
+  <!-- ── Weight Ramp ───────────────────────────────────────────── -->
+  <section>
+    <div class="section-label">Weight Ramp</div>
+    <div class="weight-ramp specimen">
+      <div class="weight-ramp-row"><span class="weight-ramp-label">100 Thin</span><span class="weight-ramp-text" style="font-weight:100">Geometric warmth in every glyph</span></div>
+      <div class="weight-ramp-row"><span class="weight-ramp-label">200 XLight</span><span class="weight-ramp-text" style="font-weight:200">Geometric warmth in every glyph</span></div>
+      <div class="weight-ramp-row"><span class="weight-ramp-label">300 Light</span><span class="weight-ramp-text" style="font-weight:300">Geometric warmth in every glyph</span></div>
+      <div class="weight-ramp-row"><span class="weight-ramp-label">400 Regular</span><span class="weight-ramp-text" style="font-weight:400">Geometric warmth in every glyph</span></div>
+      <div class="weight-ramp-row"><span class="weight-ramp-label">500 Medium</span><span class="weight-ramp-text" style="font-weight:500">Geometric warmth in every glyph</span></div>
+      <div class="weight-ramp-row"><span class="weight-ramp-label">600 SemiBold</span><span class="weight-ramp-text" style="font-weight:600">Geometric warmth in every glyph</span></div>
+      <div class="weight-ramp-row"><span class="weight-ramp-label">700 Bold</span><span class="weight-ramp-text" style="font-weight:700">Geometric warmth in every glyph</span></div>
+      <div class="weight-ramp-row"><span class="weight-ramp-label">800 XBold</span><span class="weight-ramp-text" style="font-weight:800">Geometric warmth in every glyph</span></div>
+    </div>
+  </section>
+
+  <!-- ── Headings ──────────────────────────────────────────────── -->
+  <section>
+    <div class="section-label">Heading Hierarchy</div>
+    <div class="waterfall specimen">
+      <h1>Heading One — Display</h1>
+      <h2>Heading Two — Section</h2>
+      <h3>Heading Three — Subsection</h3>
+      <h4>Heading Four — Group</h4>
+      <h5>Heading Five — Detail</h5>
+      <h6>Heading Six — Label</h6>
+    </div>
+  </section>
+
+  <!-- ── Body Text ─────────────────────────────────────────────── -->
+  <section>
+    <div class="section-label">Body Text — Long-form reading</div>
+    <div class="body-text specimen">
+      <p>Typography is the craft of endowing human language with a durable visual form, and thus with an independent existence. Its heartbeat is a steady, even pulse — the rhythm of text on a page. When done well, the reader forgets about the type entirely and is absorbed in the content.</p>
+      <p>Good proportional sans-serif fonts walk a tightrope between <strong>neutrality and character</strong>. Too neutral, and the font is invisible in the worst way — indistinguishable from system defaults, <em>generic and forgettable</em>. Too characterful, and it becomes a distraction, calling attention to itself when it should be serving the words.</p>
+      <p>R Sans aims for the sweet spot: <strong>distinctive enough to feel intentional</strong>, quiet enough to disappear during sustained reading. The single-storey <em>a</em>, the tailed <em>l</em>, the spurred <em>G</em> — these are small signals that say <em>"someone chose this carefully."</em></p>
+      <p>Numbers should feel at home in running text: the figures <strong>0123456789</strong> sit on the baseline with tabular or proportional spacing. Punctuation — commas, quotes, semicolons — should feel <em>warm</em>, not mechanical. The discretionary ligatures <strong>fi fl ff</strong> add a touch of refinement that most sans-serifs lack.</p>
+    </div>
+  </section>
+
+  <!-- ── Blockquotes ───────────────────────────────────────────── -->
+  <section>
+    <div class="section-label">Blockquotes</div>
+    <div class="specimen">
+      <blockquote>
+        "Less, but better." Design should be reduced to its essence — but not stripped of its humanity.
+        <cite>— Dieter Rams</cite>
+      </blockquote>
+      <blockquote>
+        "Circles and rectangles; heavy lines and negative space." The tension between geometric primitives creates visual interest without complexity.
+        <cite>— Andy Matuschak, Orbit Design Language</cite>
+      </blockquote>
+      <blockquote>
+        "The details are not the details. They make the design."
+        <cite>— Charles Eames</cite>
+      </blockquote>
+    </div>
+  </section>
+
+  <!-- ── Lists ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="section-label">Lists</div>
+    <div class="list-demo specimen">
+      <h4 style="margin-bottom: 12px;">Design principles for R Sans:</h4>
+      <ul>
+        <li><strong>Geometric warmth</strong> — Single-storey <em>a</em>, rounded quotes, softened terminals</li>
+        <li><strong>Purposeful disambiguation</strong> — Tailed <em>l</em>, serifed <em>I</em>, slashed <em>0</em></li>
+        <li><strong>Typographic refinement</strong> — Discretionary ligatures (fi, fl, ff)</li>
+        <li><strong>Cohesive digit family</strong> — Flat-top 3, consistent contour language</li>
+      </ul>
+      <h4 style="margin: 24px 0 12px;">Compared to stock Inter:</h4>
+      <ol>
+        <li>Single-storey 'a' replaces the generic double-storey form</li>
+        <li>Tailed 'l' prevents confusion with '1' and 'I'</li>
+        <li>Serifed uppercase 'I' for instant recognition in body text</li>
+        <li>Spurred 'G' adds structural clarity at small sizes</li>
+        <li>Round quotes and commas for warmth over mechanical precision</li>
+        <li>Discretionary ligatures for typographic sophistication</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ── Mixed Content / Article ───────────────────────────────── -->
+  <section>
+    <div class="section-label">Article Demo — realistic mixed content</div>
+    <div class="article-demo specimen">
+      <h2>The Invisible Art of Type Selection</h2>
+      <div class="byline">By Rishit V. — 7 Feb 2026 — 4 min read</div>
+      <p class="lede">A well-chosen typeface is like good posture: you only notice it when it's wrong. But the difference between "fine" and "right" compounds over hours of reading.</p>
+      <p>Most developers never think about their UI font. They inherit whatever the OS provides — San Francisco on macOS, Segoe UI on Windows, Roboto on Android — and move on. And honestly? Those defaults are <em>excellent</em>. They're the product of millions of dollars and years of research.</p>
+      <p>But defaults are designed for <strong>everyone</strong>, which means they're optimized for <strong>no one in particular</strong>. A custom font lets you make opinionated choices: do you prefer geometric warmth or humanist flexibility? Tabular or proportional figures? Ligatures in your UI copy?</p>
+
+      <h3>The Single-Storey Question</h3>
+      <p>The lowercase <em>a</em> is the most contentious letter in type design. The double-storey form (with its little hat) is traditional — inherited from Renaissance scribes. The single-storey form (a simple circle and stem) is modern — Futura made it mainstream in 1927.</p>
+      <p>For R Sans, single-storey wins. Here's why:</p>
+      <ul style="padding-left: 24px; margin-bottom: 16px;">
+        <li>It <em>signals intentionality</em> — you know this isn't a default font</li>
+        <li>It pairs beautifully with R Mono's rounded <span class="inline-code">a</span> glyph</li>
+        <li>It reinforces the "circles meeting rectangles" geometric language</li>
+      </ul>
+      <p>Compare: <strong>"application"</strong> with single-storey <em>a</em> vs. the stock double-storey. The geometric form creates a more rhythmic, open texture — especially in words with multiple <em>a</em>'s.</p>
+
+      <h3>Technical Details</h3>
+      <p>R Sans is built from <strong>Inter 4.1</strong> with character variants frozen via <span class="inline-code">pyftfeatfreeze</span>. The optical size axis is pinned to <span class="inline-code">16px</span> for body text optimization, and the line gap is increased to <span class="inline-code">164 units</span> for comfortable reading at 1.29× line-height.</p>
+      <div class="code-block">pyftfeatfreeze -f "cv01,cv05,cv08,cv09,cv10,cv11,cv12,cv13,ss03,zero,dlig" \
+  -R 'Inter Variable/R Sans' \
+  InterVariable.ttf RSans-Variable.ttf</div>
+      <p>The build produces 16 static instances (8 weights × upright + italic) plus variable fonts for web use. Total web payload: <strong>~350 KB</strong> for the variable font, or ~116 KB per static WOFF2.</p>
+    </div>
+  </section>
+
+  <!-- ── Glyph Set ─────────────────────────────────────────────── -->
+  <section>
+    <div class="section-label">Glyph Overview</div>
+    <div class="glyph-grid specimen" id="glyph-grid">
+      <!-- Populated by JS -->
+    </div>
+  </section>
+
+  <!-- ── Small / Caption Text ──────────────────────────────────── -->
+  <section>
+    <div class="section-label">Small & Caption Text</div>
+    <div class="specimen">
+      <div class="small-text" style="margin-bottom: 16px;">
+        At 13px, R Sans should remain legible and pleasant. The tailed 'l' and serifed 'I' become critical disambiguation tools at this size. Line-height matters even more: tight leading turns text into a wall. The extra line gap baked into R Sans means even cramped UIs get breathing room. Figures: 0123456789. Symbols: @#$%&*()!?
+      </div>
+      <div class="caption-text">
+        Figure 1.3 — Comparison of character variant impact at caption size. R Sans Regular 400, 11px/1.4.
+        Licensed under MIT. Built from Inter 4.1 by Rasmus Andersson.
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Side-by-Side Comparison ───────────────────────────────── -->
+  <section>
+    <div class="section-label">Comparison — R Sans vs. System Fonts</div>
+    <div class="comparison-grid">
+      <div class="comparison-card">
+        <h4>R Sans (your font)</h4>
+        <div class="comp-text comp-rsans">Aagl1I0O fi fl ff "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
+      </div>
+      <div class="comparison-card">
+        <h4>System UI (SF Pro / Segoe)</h4>
+        <div class="comp-text comp-system">Aagl1I0O fi fl ff "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
+      </div>
+      <div class="comparison-card">
+        <h4>Arial / Helvetica</h4>
+        <div class="comp-text comp-arial">Aagl1I0O fi fl ff "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
+      </div>
+      <div class="comparison-card">
+        <h4>R Mono (for reference)</h4>
+        <div class="comp-text" style="font-family: 'R Mono', monospace;">Aagl1I0O fi fl ff "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Editable Sandbox ──────────────────────────────────────── -->
+  <section>
+    <div class="section-label">Sandbox — Type anything</div>
+    <div class="specimen">
+      <div id="sandbox" contenteditable="true" style="
+        font-size: 28px;
+        line-height: 1.5;
+        padding: 24px;
+        border: 2px dashed var(--border);
+        border-radius: var(--radius);
+        min-height: 120px;
+        outline: none;
+        transition: border-color 0.2s;
+      " onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">Type here to test R Sans with your own text…</div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SCRIPTS
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+// ── Feature definitions ────────────────────────────────────────
+const FEATURES = [
+  { tag: 'cv11', name: 'Single-storey a',     preview: 'a', frozen: false },
+  { tag: 'cv05', name: 'Tailed l',            preview: 'l', frozen: true },
+  { tag: 'cv01', name: 'Alternate 1',         preview: '1', frozen: false },
+  { tag: 'cv08', name: 'Serifed I',           preview: 'I', frozen: false },
+  { tag: 'cv09', name: 'Flat-top 3',          preview: '3', frozen: false },
+  { tag: 'cv10', name: 'Spurred G',           preview: 'G', frozen: true },
+  { tag: 'cv12', name: 'Compact f',           preview: 'f', frozen: true },
+  { tag: 'cv13', name: 'Compact t',           preview: 't', frozen: true },
+  { tag: 'cv02', name: 'Open 4',              preview: '4', frozen: false },
+  { tag: 'cv03', name: 'Open 6',              preview: '6', frozen: false },
+  { tag: 'cv04', name: 'Open 9',              preview: '9', frozen: false },
+  { tag: 'cv06', name: 'Simplified u',        preview: 'u', frozen: false },
+  { tag: 'cv07', name: 'Alternate sharp s',   preview: 'ß', frozen: false },
+  { tag: 'cv14', name: 'Alt capital sharp S',  preview: 'ẞ', frozen: false },
+  { tag: 'zero', name: 'Slashed zero',        preview: '0', frozen: true },
+  { tag: 'ss01', name: 'Open digits',         preview: '0369', frozen: false },
+  { tag: 'ss02', name: 'Disambiguation',      preview: 'Il1O0', frozen: false },
+  { tag: 'ss03', name: 'Round quotes',        preview: '\u201C\u201D\u2018\u2019', frozen: false },
+  { tag: 'dlig', name: 'Ligatures (fi fl ff)', preview: 'fi fl', frozen: false },
+  { tag: 'calt', name: 'Contextual alts',     preview: ':)', frozen: false },
+];
+
+// Presets
+const PRESETS = {
+  current: ['cv05', 'cv10', 'cv12', 'cv13', 'zero'],
+  refined: ['cv01', 'cv05', 'cv08', 'cv09', 'cv10', 'cv11', 'cv12', 'cv13', 'ss03', 'zero', 'dlig'],
+  geometric: ['cv01', 'cv02', 'cv03', 'cv04', 'cv05', 'cv06', 'cv08', 'cv09', 'cv10', 'cv11', 'cv12', 'cv13', 'ss03', 'zero', 'dlig'],
+  none: [],
+};
+
+let activeFeatures = new Set(PRESETS.refined);
+
+// ── Build feature toggles ──────────────────────────────────────
+function buildFeatureGrid() {
+  const grid = document.getElementById('features-grid');
+  grid.innerHTML = '';
+  FEATURES.forEach(f => {
+    const label = document.createElement('label');
+    label.className = 'feature-toggle' + (f.frozen ? ' is-frozen' : '');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = activeFeatures.has(f.tag);
+    cb.dataset.tag = f.tag;
+    cb.addEventListener('change', () => {
+      if (cb.checked) activeFeatures.add(f.tag);
+      else activeFeatures.delete(f.tag);
+      applyFeatures();
+    });
+    label.appendChild(cb);
+    const tagSpan = document.createElement('span');
+    tagSpan.className = 'ft-tag';
+    tagSpan.textContent = f.tag;
+    label.appendChild(tagSpan);
+    const descSpan = document.createElement('span');
+    descSpan.className = 'ft-desc';
+    descSpan.textContent = f.name;
+    label.appendChild(descSpan);
+    const prevSpan = document.createElement('span');
+    prevSpan.className = 'ft-preview';
+    prevSpan.textContent = f.preview;
+    label.appendChild(prevSpan);
+    grid.appendChild(label);
+  });
+}
+
+function applyFeatures() {
+  const parts = FEATURES.map(f => `"${f.tag}" ${activeFeatures.has(f.tag) ? 1 : 0}`);
+  const css = parts.join(', ');
+  document.querySelectorAll('.specimen, .specimen *, .hero-text, .hero-sub, blockquote, .body-text, .waterfall, .list-demo, .article-demo, .article-demo *, .small-text, .caption-text, .comp-rsans, .diag-chars, .pangram-block, .weight-ramp-text, .glyph-cell, #sandbox, .ft-preview').forEach(el => {
+    el.style.fontFeatureSettings = css;
+  });
+  // Update CSS output
+  document.getElementById('feature-css-output').textContent =
+    `font-feature-settings: ${css};`;
+  // Sync checkboxes
+  document.querySelectorAll('#features-grid input[type="checkbox"]').forEach(cb => {
+    cb.checked = activeFeatures.has(cb.dataset.tag);
+  });
+}
+
+function applyPreset(name) {
+  activeFeatures = new Set(PRESETS[name]);
+  buildFeatureGrid();
+  applyFeatures();
+}
+
+// ── Weight & size sliders ──────────────────────────────────────
+document.getElementById('weight-slider').addEventListener('input', e => {
+  const w = e.target.value;
+  document.getElementById('weight-val').textContent = w;
+  document.querySelectorAll('.specimen, .specimen *').forEach(el => {
+    // Don't override explicit weight-ramp weights
+    if (!el.closest('.weight-ramp') && !el.closest('.waterfall')) {
+      el.style.fontWeight = w;
+    }
+  });
+});
+
+document.getElementById('size-slider').addEventListener('input', e => {
+  const s = e.target.value;
+  document.getElementById('size-val').textContent = s;
+  document.querySelectorAll('.body-text p, .list-demo li, .article-demo p').forEach(el => {
+    el.style.fontSize = s + 'px';
+  });
+});
+
+// ── Theme toggle ───────────────────────────────────────────────
+function toggleTheme() {
+  document.body.classList.toggle('dark');
+  const btn = document.getElementById('theme-toggle');
+  btn.textContent = document.body.classList.contains('dark') ? 'Light' : 'Dark';
+}
+
+// ── Glyph grid ─────────────────────────────────────────────────
+function buildGlyphGrid() {
+  const grid = document.getElementById('glyph-grid');
+  const chars = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789!@#$%^&*()-=+[]{}|;:\'",.<>?/~`';
+  chars.split('').forEach(ch => {
+    const cell = document.createElement('div');
+    cell.className = 'glyph-cell';
+    cell.textContent = ch;
+    grid.appendChild(cell);
+  });
+}
+
+// ── Init ───────────────────────────────────────────────────────
+buildFeatureGrid();
+buildGlyphGrid();
+applyFeatures();
+</script>
+</body>
+</html>
