@@ -41,10 +41,9 @@
 #    Combined with the default closed '4', '6', '9' — the digit set reads
 #    as a cohesive geometric family, just like R Mono's closed contours.
 #
-# 4. COMPACT LETTERFORMS (cv12 + cv13)
-#    Compact 'f' and 't' — tighter horizontal footprint without sacrificing
-#    readability. These reduce the "loose" feeling that makes Inter feel
-#    like a system font. More economical, more intentional.
+# 4. COMPACT 'f' (cv12)
+#    Compact 'f' — tighter horizontal footprint without sacrificing
+#    readability. More economical, more intentional.
 #
 # 5. STRUCTURAL DETAILS (cv10 + ss03)
 #    Spurred 'G' adds the structural tooth that aids recognition at small sizes.
@@ -59,7 +58,17 @@
 #    see "difficult" or "affluent" set with proper ligatures, the
 #    difference is subtle but unmistakable.
 #
-# 7. READING-OPTIMIZED METRICS
+# 7. GLYPH SURGERY ('e' + 't')
+#    fontTools-level outline modifications on the variable font:
+#    'e' — Aperture widened ~50 units; terminal pulled inward and raised
+#           for a more open, geometric character (Circular/Google Sans feel).
+#    't' — Crossbar extended right by 25 units for more confident presence.
+#           Bottom hook softened: raised 50 units for a gentler, flatter
+#           terminal matching R Mono's flat-hook philosophy.
+#    These changes are applied to the default master; gvar deltas
+#    (weight/opsz variations) are preserved automatically.
+#
+# 8. READING-OPTIMIZED METRICS
 #    Optical size pinned to 16px (body text sweet spot).
 #    Line gap increased to 164 units (~1.29× default line-height).
 #    These aren't visible changes — they're felt over hours of reading.
@@ -73,7 +82,6 @@
 #   cv10  Spurred 'G'          — structural clarity at small sizes
 #   cv11  Single-storey 'a'    — THE signature geometric form
 #   cv12  Compact 'f'          — tighter, more intentional
-#   cv13  Compact 't'          — tighter, more intentional
 #   ss03  Round quotes/commas  — warmth in punctuation
 #   zero  Slashed zero         — 0/O disambiguation
 #   dlig  Ligatures fi fl ff   — typographic refinement
@@ -97,10 +105,10 @@ INTER_VERSION="4.1"
 # ── Feature selection ─────────────────────────────────────────────────
 # Core personality: single-storey a, tailed l, serifed I, spurred G
 # Digit refinement: alternate 1, flat-top 3
-# Compactness: compact f, compact t
+# Compactness: compact f
 # Warmth: round quotes & commas
 # Polish: slashed zero, discretionary ligatures
-FEATURES="cv01,cv05,cv08,cv09,cv10,cv11,cv12,cv13,ss03,zero,dlig"
+FEATURES="cv01,cv05,cv08,cv09,cv10,cv11,cv12,ss03,zero,dlig"
 
 # ── Metric tuning ─────────────────────────────────────────────────────
 LINE_GAP=164           # ~1.29x default line-height for comfortable reading
@@ -130,6 +138,73 @@ pyftfeatfreeze -f "$FEATURES" -R 'Inter Variable/R Sans' \
 pyftfeatfreeze -f "$FEATURES" -R 'Inter Variable Italic/R Sans Italic' \
   "$BUILD_DIR/inter-release/InterVariable-Italic.ttf" \
   "$BUILD_DIR/output/RSans-Italic-Variable.ttf"
+
+echo "==> Performing glyph surgery (e, t)..."
+python3 - "$BUILD_DIR" << 'SURGERY'
+import os
+import sys
+from fontTools.ttLib import TTFont
+
+BUILD = sys.argv[1]
+
+# ── Glyph surgery ────────────────────────────────────────────────────
+# Modify outline control points on the variable fonts.
+# Point indices are stable across weights (gvar stores deltas from these).
+# Changes are intentionally subtle: ~20-50 units on a 2048 UPM grid.
+
+def surgery_e(glyf):
+    """Open the aperture of 'e' for a more geometric character.
+
+    Inter's 'e' has a moderate aperture — neither open nor closed.
+    We pull the terminal cluster (points 33-37) inward and upward,
+    widening the opening by ~50 units. This gives 'e' the open,
+    confident feel of Circular or Google Sans.
+
+    Terminal tip: (902, 308) → (855, 348)  — pull left 47, up 40
+    """
+    g = glyf['e']
+    c = list(g.coordinates)
+    c[33] = (c[33][0] - 23, c[33][1] + 18)   # OFF control
+    c[34] = (c[34][0] - 36, c[34][1] + 29)   # OFF control
+    c[35] = (c[35][0] - 47, c[35][1] + 40)   # ON  terminal tip
+    c[36] = (c[36][0] - 44, c[36][1] + 38)   # ON  inner terminal edge
+    c[37] = (c[37][0] - 35, c[37][1] + 32)   # OFF control
+    g.coordinates = g.coordinates.__class__(c)
+    # Recompute bounding box
+    g.recalcBounds(glyf)
+    print(f"    'e': aperture opened (terminal tip → {c[35]})")
+
+def surgery_t(glyf):
+    """Widen crossbar and soften bottom hook of 't'.
+
+    Crossbar: extend right edge by 25 units for more confident presence.
+    Bottom: raise the sharp hook at point 13 from y=6 to y=56, creating
+    a gentler, flatter terminal. Matches R Mono's flat-hook philosophy.
+    """
+    g = glyf['t']
+    c = list(g.coordinates)
+    # Extend crossbar right edge (contour 0: rectangle)
+    c[0]  = (c[0][0] + 25, c[0][1])           # ON  top-right of crossbar
+    c[1]  = (c[1][0] + 25, c[1][1])           # ON  bottom-right of crossbar
+    # Soften bottom hook
+    c[12] = (c[12][0],     c[12][1] + 14)     # ON  pre-hook: raise
+    c[13] = (c[13][0] - 1, c[13][1] + 50)     # ON  hook point: raise 50
+    c[14] = (c[14][0] + 3, c[14][1] + 14)     # OFF post-hook control
+    g.coordinates = g.coordinates.__class__(c)
+    g.recalcBounds(glyf)
+    print(f"    't': crossbar +25, hook softened (→ {c[13]})")
+
+for var_file in ['RSans-Variable.ttf', 'RSans-Italic-Variable.ttf']:
+    path = os.path.join(BUILD, 'output', var_file)
+    font = TTFont(path)
+    glyf = font['glyf']
+    print(f"  {var_file}:")
+    surgery_e(glyf)
+    surgery_t(glyf)
+    font.save(path)
+
+print("  Surgery complete.")
+SURGERY
 
 echo "==> Tuning metrics and generating instances..."
 python3 - "$BUILD_DIR" "$LINE_GAP" "$OPSZ" << 'PYEOF'
