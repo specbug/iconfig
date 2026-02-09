@@ -384,6 +384,20 @@ vim.keymap.set("n", "<Tab>",   ":BufferLineCycleNext<CR>", { desc = "Next buffer
 vim.keymap.set("n", "<S-Tab>", ":BufferLineCyclePrev<CR>", { desc = "Prev buffer", silent = true })
 vim.keymap.set("n", "<leader>x", ":bdelete<CR>",           { desc = "Close buffer", silent = true })
 
+-- Mouse: keep scroll working but prevent all clicks/drags from moving cursor
+-- (use Shift+mouse for terminal-level text selection in Ghostty/Zellij)
+vim.opt.mousemoveevent = false
+for _, mode in ipairs({"n", "i", "v"}) do
+    for _, event in ipairs({
+        "<LeftMouse>", "<2-LeftMouse>", "<3-LeftMouse>", "<4-LeftMouse>",
+        "<LeftDrag>", "<LeftRelease>",
+        "<RightMouse>", "<RightDrag>", "<RightRelease>",
+        "<MiddleMouse>", "<MiddleDrag>", "<MiddleRelease>",
+    }) do
+        vim.keymap.set(mode, event, "<Nop>")
+    end
+end
+
 -- Hard mode: disable arrow keys
 vim.keymap.set("n", "<Left>",  '<cmd>echo "Use h!"<CR>')
 vim.keymap.set("n", "<Right>", '<cmd>echo "Use l!"<CR>')
