@@ -33,8 +33,9 @@ brew install --cask 1password-cli
 # Backup existing .zshrc
 [[ -f ~/.zshrc ]] && mv ~/.zshrc ~/.zshrc.backup
 
-# Copy this config
+# Copy config files
 cp .zshrc ~/.zshrc
+cp op_env.zsh ~/.op_env.zsh
 
 # Reload
 source ~/.zshrc
@@ -44,7 +45,7 @@ source ~/.zshrc
 
 ### 1Password Secrets
 
-Edit the `OP_*` variables to match your setup:
+Edit `~/.op_env.zsh` to match your setup:
 
 ```zsh
 # Your 1Password accounts
@@ -70,6 +71,11 @@ typeset -A OP_FIELD_FOR=(
   MY_SECRET         password
 )
 ```
+
+> **Why a separate file?** Shell snapshot tools (e.g. Claude Code) strip
+> `_`-prefixed functions and zsh typed arrays (`typeset -ga`/`-A`) from their
+> environment capture. Keeping OP config in `~/.op_env.zsh` lets `op_export`
+> lazy-load them at runtime when they're missing.
 
 Then use:
 - `withenv <command>` - Run command with secrets exported

@@ -127,54 +127,14 @@ export FZF_ALT_C_OPTS="--preview 'eza --tree --level=2 --icons --color=always {}
 # fi
 
 ##### ===== 1Password Integration =====
-# Multi-account support with per-key item/field mapping
-# Customize OP_ACCOUNTS, OP_VARS, OP_ITEM_FOR, OP_FIELD_FOR for your setup
+# OP config (accounts, vars, mappings, _op_* helpers) lives in op_env.zsh.
+# Separated so shell snapshot tools (e.g. Claude Code) that skip _-prefixed
+# functions and zsh typed arrays can lazy-load them at runtime.
+# Customize your secrets in ~/.op_env.zsh (see op_env.zsh for details).
 
 export OP_BIOMETRIC_UNLOCK_ENABLED=true
-typeset -ga OP_ACCOUNTS=("my.1password.com")  # Add your 1Password accounts
-export OP_VAULT="${OP_VAULT:-Personal}"       # Default vault
-
-# Define which secrets to manage (customize these)
-typeset -ga OP_VARS=(
-  OPENAI_API_KEY
-  GITHUB_TOKEN
-  # Add more as needed
-)
-
-# Map env var → 1Password item name
-typeset -A OP_ITEM_FOR=(
-  OPENAI_API_KEY    "OpenAI API Key"
-  GITHUB_TOKEN      "GitHub Token"
-)
-
-# Map env var → field name in the item
-typeset -A OP_FIELD_FOR=(
-  OPENAI_API_KEY    api_key
-  GITHUB_TOKEN      token
-)
-
 autoload -Uz colors && colors
-
-_op_ref_var() {
-  local var="$1"
-  local item="${OP_ITEM_FOR[$var]}" field="${OP_FIELD_FOR[$var]}"
-  print -r -- "op://$OP_VAULT/$item/$field"
-}
-
-_op_can_read_var() {
-  local acct="$1" var="$2"
-  OP_ACCOUNT="$acct" op read "$(_op_ref_var "$var")" >/dev/null 2>&1
-}
-
-_op_pick_account_for_var() {
-  local var="$1" acct
-  for acct in "${OP_ACCOUNTS[@]}"; do
-    if _op_can_read_var "$acct" "$var"; then
-      print -r -- "$acct"; return 0
-    fi
-  done
-  return 1
-}
+[[ -f ~/.op_env.zsh ]] && source ~/.op_env.zsh
 
 op_export_one() {
   local name="$1"
@@ -195,6 +155,10 @@ op_export_one() {
 }
 
 op_export() {
+  # Lazy-load OP helpers if missing (shell snapshots strip _-prefixed funcs + typed arrays)
+  if ! typeset -f _op_pick_account_for_var > /dev/null 2>&1; then
+    [[ -f ~/.op_env.zsh ]] && source ~/.op_env.zsh
+  fi
   local v rc=0
   for v in "${OP_VARS[@]}"; do op_export_one "$v" || rc=1; done
   return $rc
