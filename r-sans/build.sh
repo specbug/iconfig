@@ -64,6 +64,14 @@ OPSZ=14.0              # Optical size for static instances (DM Sans range: 9–4
                        # 14 = body text sweet spot, double-storey a/g retained
 DMSANS_REPO="https://github.com/google/fonts/raw/main/ofl/dmsans"
 
+# ── Frozen features ─────────────────────────────────────────────────
+# These stylistic sets are baked into the default glyphs via pyftfeatfreeze.
+#   ss01  Round quotes/commas    — warmth in punctuation
+#   ss04  Alternate 'u'          — more geometric form
+#   ss06  Alternate 'Q' (tail)   — distinctive, confident
+#   ss07  Alternate digits       — geometric 1, 3, 4, 6, 9
+FEATURES="ss01,ss04,ss06,ss07"
+
 cleanup() {
   rm -rf "$BUILD_DIR"
 }
@@ -73,7 +81,7 @@ echo "==> Setting up build environment..."
 mkdir -p "$BUILD_DIR/output"
 python3 -m venv "$BUILD_DIR/venv"
 source "$BUILD_DIR/venv/bin/activate"
-pip install -q fonttools brotli
+pip install -q fonttools brotli opentype-feature-freezer
 
 echo "==> Downloading DM Sans..."
 curl -sL -o "$BUILD_DIR/DMSans.ttf" \
@@ -92,66 +100,45 @@ for f in ['$BUILD_DIR/DMSans.ttf', '$BUILD_DIR/DMSans-Italic.ttf']:
 print('  Downloads verified: 2 variable TrueType fonts')
 "
 
-# ── Step 1: Rename DM Sans → R Sans ─────────────────────────────────
+# ── Step 1: Freeze features + Rename DM Sans → R Sans ───────────────
 
-echo "==> Renaming DM Sans → R Sans..."
-python3 - "$BUILD_DIR" << 'RENAME'
+echo "==> Freezing features (${FEATURES}) and renaming..."
+pyftfeatfreeze -f "$FEATURES" -R 'DM Sans/R Sans' \
+  "$BUILD_DIR/DMSans.ttf" \
+  "$BUILD_DIR/output/RSans-Variable.ttf"
+pyftfeatfreeze -f "$FEATURES" -R 'DM Sans/R Sans' \
+  "$BUILD_DIR/DMSans-Italic.ttf" \
+  "$BUILD_DIR/output/RSans-Italic-Variable.ttf"
+
+# Clean up name table: strip "9pt" opsz prefix that DM Sans bakes in
+python3 - "$BUILD_DIR" << 'NAMECLEAN'
 import os
 import sys
-import shutil
+import re
 from fontTools.ttLib import TTFont
 
 BUILD = sys.argv[1]
 
-RENAMES = {
-    'DM Sans': 'R Sans',
-    'DMSans': 'RSans',
-    'DM_Sans': 'R_Sans',
-    'dm-sans': 'r-sans',
-}
-
-for src, dst in [('DMSans.ttf', 'RSans-Variable.ttf'),
-                 ('DMSans-Italic.ttf', 'RSans-Italic-Variable.ttf')]:
-    path_in = os.path.join(BUILD, src)
-    path_out = os.path.join(BUILD, 'output', dst)
-    shutil.copy2(path_in, path_out)
-
-    font = TTFont(path_out)
+for var_file in ['RSans-Variable.ttf', 'RSans-Italic-Variable.ttf']:
+    path = os.path.join(BUILD, 'output', var_file)
+    font = TTFont(path)
     name = font['name']
-
     for record in name.names:
         try:
             text = record.toStr()
         except:
             continue
         changed = text
-        for old, new in RENAMES.items():
-            changed = changed.replace(old, new)
-        # Also strip the "9pt " / "14pt " optical size prefix from names
-        # DM Sans uses "DM Sans 9pt" as family name at default opsz
-        import re
         changed = re.sub(r'R Sans \d+pt\b', 'R Sans', changed)
         changed = re.sub(r'RSans-\d+pt', 'RSans-', changed)
-        # Clean up double dashes
         changed = changed.replace('RSans--', 'RSans-')
         if changed != text:
             record.string = changed
+    font.save(path)
+    print(f"  {var_file}: names cleaned")
 
-    # Update STAT table if present
-    if 'STAT' in font:
-        stat = font['STAT']
-        if hasattr(stat.table, 'DesignAxisRecord') and stat.table.DesignAxisRecord:
-            for axis in stat.table.DesignAxisRecord.Axis:
-                if hasattr(axis, 'AxisNameID'):
-                    pass  # axis names are generic (Weight, Optical Size)
-        if hasattr(stat.table, 'DesignAxisValueArray') and stat.table.DesignAxisValueArray:
-            pass  # axis values reference nameIDs already updated above
-
-    font.save(path_out)
-    print(f"  {dst}: renamed")
-
-print("  Rename complete.")
-RENAME
+print("  Feature freeze + rename complete.")
+NAMECLEAN
 
 # ── Inspect mode: dump glyph data and exit ───────────────────────────
 
@@ -842,6 +829,7 @@ echo "Install system fonts: cp $SCRIPT_DIR/fonts/*.ttf ~/Library/Fonts/"
 echo ""
 echo "Design choices:"
 echo "  Base:         DM Sans (by Colophon Foundry)"
+echo "  Features:     ${FEATURES} (frozen into default glyphs)"
 echo "  Surgery:      Terminal softening on 12 glyphs"
 echo "  Disambig:     Serifed I, tailed l, dotted zero (static instances)"
 echo "  Line height:  ~1.30x (DM Sans native, body text optimized)"
