@@ -9,15 +9,20 @@
   @font-face {
     font-family: 'R Sans';
     src: url('r-sans/web-fonts/RSans-Variable.ttf') format('truetype');
-    font-weight: 100 900;
+    font-weight: 100 1000;
     font-style: normal;
+    font-display: swap;
   }
   @font-face {
     font-family: 'R Sans';
     src: url('r-sans/web-fonts/RSans-Italic-Variable.ttf') format('truetype');
-    font-weight: 100 900;
+    font-weight: 100 1000;
     font-style: italic;
+    font-display: swap;
   }
+  /* Stock DM Sans for A/B comparison (loaded from Google Fonts) */
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+
   @font-face {
     font-family: 'R Mono';
     src: url('r-mono/web-fonts/RMono-Regular.woff2') format('woff2');
@@ -159,7 +164,7 @@
   }
   .features-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 8px;
   }
   .feature-toggle {
@@ -193,13 +198,6 @@
     font-size: 16px;
     color: var(--fg);
     font-family: var(--specimen-font);
-  }
-  .feature-toggle.is-frozen {
-    opacity: 0.5;
-  }
-  .feature-toggle.is-frozen .ft-tag::after {
-    content: ' ✓';
-    font-size: 9px;
   }
   .preset-bar {
     display: flex;
@@ -376,9 +374,40 @@
     line-height: 1.55;
   }
   .comp-rsans { font-family: 'R Sans', sans-serif; }
+  .comp-dmsans { font-family: 'DM Sans', sans-serif; }
   .comp-system { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
   .comp-arial { font-family: Arial, Helvetica, sans-serif; }
-  .comp-inter { font-family: 'Inter', sans-serif; }
+
+  /* ── Warmth A/B ─────────────────────────────────────────────── */
+  .ab-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .ab-panel {
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-alt);
+  }
+  .ab-panel h4 {
+    font-family: 'R Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--fg-faint);
+    margin-bottom: 16px;
+  }
+  .ab-panel p {
+    font-size: 17px;
+    line-height: 1.65;
+    margin-bottom: 12px;
+  }
+  .ab-panel .ab-chars {
+    font-size: 36px;
+    letter-spacing: 0.03em;
+    margin-bottom: 8px;
+  }
 
   /* ── Pangram Block ──────────────────────────────────────────── */
   .pangram-block {
@@ -445,13 +474,18 @@
 <div class="toolbar">
   <div class="toolbar-section">
     <label>Weight</label>
-    <input type="range" id="weight-slider" min="100" max="900" value="400" step="1">
+    <input type="range" id="weight-slider" min="100" max="1000" value="400" step="1">
     <span class="weight-val" id="weight-val">400</span>
   </div>
   <div class="toolbar-section">
     <label>Size</label>
     <input type="range" id="size-slider" min="10" max="72" value="17" step="1">
     <span class="weight-val" id="size-val">17</span>
+  </div>
+  <div class="toolbar-section">
+    <label>Opsz</label>
+    <input type="range" id="opsz-slider" min="9" max="40" value="14" step="1">
+    <span class="weight-val" id="opsz-val">14</span>
   </div>
   <div class="toolbar-section" style="margin-left: auto;">
     <button id="theme-toggle" onclick="toggleTheme()">Dark</button>
@@ -464,23 +498,40 @@
   <section>
     <div class="specimen">
       <div class="hero-text">R Sans</div>
-      <div class="hero-sub">A proportional sans-serif with geometric warmth.</div>
+      <div class="hero-sub">Warm geometric reading font. Built on DM Sans.</div>
+    </div>
+  </section>
+
+  <!-- ── Warmth A/B — the key comparison ─────────────────────── -->
+  <section>
+    <div class="section-label">Warmth Test — R Sans vs Stock DM Sans</div>
+    <div class="ab-section">
+      <div class="ab-panel">
+        <h4>R Sans (softened terminals)</h4>
+        <div class="ab-chars" style="font-family: 'R Sans', sans-serif;">a c e f g r s t</div>
+        <p style="font-family: 'R Sans', sans-serif;">Typography is the craft of endowing human language with a durable visual form. When done well, the reader forgets about the type entirely and is absorbed in the content. Figures: 0123456789.</p>
+      </div>
+      <div class="ab-panel">
+        <h4>Stock DM Sans (flat terminals)</h4>
+        <div class="ab-chars" style="font-family: 'DM Sans', sans-serif;">a c e f g r s t</div>
+        <p style="font-family: 'DM Sans', sans-serif;">Typography is the craft of endowing human language with a durable visual form. When done well, the reader forgets about the type entirely and is absorbed in the content. Figures: 0123456789.</p>
+      </div>
     </div>
   </section>
 
   <!-- ── Feature Lab ───────────────────────────────────────────── -->
   <section>
-    <div class="section-label">Feature Lab — toggle OpenType features in real time</div>
+    <div class="section-label">Feature Lab — toggle DM Sans stylistic sets</div>
     <div class="features-panel">
-      <h3>Character Variants & Stylistic Sets</h3>
+      <h3>Stylistic Sets & OpenType Features</h3>
       <div class="features-grid" id="features-grid">
         <!-- Populated by JS -->
       </div>
       <div class="preset-bar">
-        <button onclick="applyPreset('current')">Current Build</button>
-        <button onclick="applyPreset('refined')">Refined (recommended)</button>
-        <button onclick="applyPreset('geometric')">Max Geometric</button>
-        <button onclick="applyPreset('none')">Stock Inter</button>
+        <button onclick="applyPreset('default')">R Sans Default</button>
+        <button onclick="applyPreset('warm')">Warm Quotes</button>
+        <button onclick="applyPreset('display')">Display Mode</button>
+        <button onclick="applyPreset('none')">Stock DM Sans</button>
       </div>
       <div id="feature-css-output"></div>
     </div>
@@ -488,35 +539,31 @@
 
   <!-- ── Diagnostic Characters ─────────────────────────────────── -->
   <section>
-    <div class="section-label">Diagnostic — characters that define personality</div>
+    <div class="section-label">Diagnostic — disambiguation & terminal warmth</div>
     <div class="specimen">
       <div class="diag-row">
-        <div class="diag-chars">a g l t f</div>
-        <div class="diag-label">Key lowercase — single-storey 'a' is the signature move</div>
-      </div>
-      <div class="diag-row">
         <div class="diag-chars">I l 1 | ! i</div>
-        <div class="diag-label">Disambiguation set — must be instantly distinguishable</div>
+        <div class="diag-label">Disambiguation — serifed I, tailed l (static instances)</div>
       </div>
       <div class="diag-row">
         <div class="diag-chars">0 O o Q</div>
-        <div class="diag-label">Zero vs. letters</div>
+        <div class="diag-label">Zero vs. letters — dotted zero (static instances)</div>
       </div>
       <div class="diag-row">
-        <div class="diag-chars">G g 3 6 9 u</div>
-        <div class="diag-label">Variant-affected glyphs</div>
+        <div class="diag-chars">a c e s r t</div>
+        <div class="diag-label">Terminal-softened glyphs — compare with stock DM Sans above</div>
+      </div>
+      <div class="diag-row">
+        <div class="diag-chars">f g j n u y</div>
+        <div class="diag-label">Additional softened glyphs — hooks, arches, junctions</div>
       </div>
       <div class="diag-row">
         <div class="diag-chars">1 2 3 4 5 6 7 8 9 0</div>
         <div class="diag-label">Digit set — should feel cohesive</div>
       </div>
       <div class="diag-row">
-        <div class="diag-chars">" " ' ' « »</div>
-        <div class="diag-label">Quotation marks — round vs angular</div>
-      </div>
-      <div class="diag-row">
-        <div class="diag-chars">fi fl ff ffi fft</div>
-        <div class="diag-label">Discretionary ligatures (dlig)</div>
+        <div class="diag-chars">" " ' ' , ; :</div>
+        <div class="diag-label">Punctuation — enable ss01 for round quotes</div>
       </div>
     </div>
   </section>
@@ -538,14 +585,14 @@
   <section>
     <div class="section-label">Weight Ramp</div>
     <div class="weight-ramp specimen">
-      <div class="weight-ramp-row"><span class="weight-ramp-label">100 Thin</span><span class="weight-ramp-text" style="font-weight:100">Geometric warmth in every glyph</span></div>
-      <div class="weight-ramp-row"><span class="weight-ramp-label">200 XLight</span><span class="weight-ramp-text" style="font-weight:200">Geometric warmth in every glyph</span></div>
-      <div class="weight-ramp-row"><span class="weight-ramp-label">300 Light</span><span class="weight-ramp-text" style="font-weight:300">Geometric warmth in every glyph</span></div>
-      <div class="weight-ramp-row"><span class="weight-ramp-label">400 Regular</span><span class="weight-ramp-text" style="font-weight:400">Geometric warmth in every glyph</span></div>
-      <div class="weight-ramp-row"><span class="weight-ramp-label">500 Medium</span><span class="weight-ramp-text" style="font-weight:500">Geometric warmth in every glyph</span></div>
-      <div class="weight-ramp-row"><span class="weight-ramp-label">600 SemiBold</span><span class="weight-ramp-text" style="font-weight:600">Geometric warmth in every glyph</span></div>
-      <div class="weight-ramp-row"><span class="weight-ramp-label">700 Bold</span><span class="weight-ramp-text" style="font-weight:700">Geometric warmth in every glyph</span></div>
-      <div class="weight-ramp-row"><span class="weight-ramp-label">800 XBold</span><span class="weight-ramp-text" style="font-weight:800">Geometric warmth in every glyph</span></div>
+      <div class="weight-ramp-row"><span class="weight-ramp-label">100 Thin</span><span class="weight-ramp-text" style="font-weight:100">Warm geometry for every paragraph</span></div>
+      <div class="weight-ramp-row"><span class="weight-ramp-label">200 XLight</span><span class="weight-ramp-text" style="font-weight:200">Warm geometry for every paragraph</span></div>
+      <div class="weight-ramp-row"><span class="weight-ramp-label">300 Light</span><span class="weight-ramp-text" style="font-weight:300">Warm geometry for every paragraph</span></div>
+      <div class="weight-ramp-row"><span class="weight-ramp-label">400 Regular</span><span class="weight-ramp-text" style="font-weight:400">Warm geometry for every paragraph</span></div>
+      <div class="weight-ramp-row"><span class="weight-ramp-label">500 Medium</span><span class="weight-ramp-text" style="font-weight:500">Warm geometry for every paragraph</span></div>
+      <div class="weight-ramp-row"><span class="weight-ramp-label">600 SemiBold</span><span class="weight-ramp-text" style="font-weight:600">Warm geometry for every paragraph</span></div>
+      <div class="weight-ramp-row"><span class="weight-ramp-label">700 Bold</span><span class="weight-ramp-text" style="font-weight:700">Warm geometry for every paragraph</span></div>
+      <div class="weight-ramp-row"><span class="weight-ramp-label">800 XBold</span><span class="weight-ramp-text" style="font-weight:800">Warm geometry for every paragraph</span></div>
     </div>
   </section>
 
@@ -568,8 +615,8 @@
     <div class="body-text specimen">
       <p>Typography is the craft of endowing human language with a durable visual form, and thus with an independent existence. Its heartbeat is a steady, even pulse — the rhythm of text on a page. When done well, the reader forgets about the type entirely and is absorbed in the content.</p>
       <p>Good proportional sans-serif fonts walk a tightrope between <strong>neutrality and character</strong>. Too neutral, and the font is invisible in the worst way — indistinguishable from system defaults, <em>generic and forgettable</em>. Too characterful, and it becomes a distraction, calling attention to itself when it should be serving the words.</p>
-      <p>R Sans aims for the sweet spot: <strong>distinctive enough to feel intentional</strong>, quiet enough to disappear during sustained reading. The single-storey <em>a</em>, the tailed <em>l</em>, the spurred <em>G</em> — these are small signals that say <em>"someone chose this carefully."</em></p>
-      <p>Numbers should feel at home in running text: the figures <strong>0123456789</strong> sit on the baseline with tabular or proportional spacing. Punctuation — commas, quotes, semicolons — should feel <em>warm</em>, not mechanical. The discretionary ligatures <strong>fi fl ff</strong> add a touch of refinement that most sans-serifs lack.</p>
+      <p>R Sans aims for the sweet spot: <strong>warm enough to feel intentional</strong>, quiet enough to disappear during sustained reading. The softened terminals on <em>c</em>, <em>e</em>, <em>s</em>, and <em>t</em> create a gentle, organic texture — the typographic equivalent of rounded corners on a well-designed product.</p>
+      <p>Numbers should feel at home in running text: the figures <strong>0123456789</strong> sit on the baseline with tabular or proportional spacing. At body sizes, the optical size axis ensures optimal stroke contrast and spacing for comfortable reading.</p>
     </div>
   </section>
 
@@ -596,21 +643,20 @@
   <section>
     <div class="section-label">Lists</div>
     <div class="list-demo specimen">
-      <h4 style="margin-bottom: 12px;">Design principles for R Sans:</h4>
+      <h4 style="margin-bottom: 12px;">What makes R Sans different from stock DM Sans:</h4>
       <ul>
-        <li><strong>Geometric warmth</strong> — Single-storey <em>a</em>, rounded quotes, softened terminals</li>
-        <li><strong>Purposeful disambiguation</strong> — Tailed <em>l</em>, serifed <em>I</em>, slashed <em>0</em></li>
-        <li><strong>Typographic refinement</strong> — Discretionary ligatures (fi, fl, ff)</li>
-        <li><strong>Cohesive digit family</strong> — Flat-top 3, consistent contour language</li>
+        <li><strong>Terminal softening</strong> — 12 key glyphs have warmer, rounded stroke endings</li>
+        <li><strong>Disambiguation</strong> — Serifed <em>I</em>, tailed <em>l</em>, dotted <em>0</em> (static instances)</li>
+        <li><strong>Proper metadata</strong> — Clean RIBBI grouping, correct fsSelection/macStyle per weight</li>
+        <li><strong>Cross-platform metrics</strong> — hhea aligned with usWin for consistent rendering</li>
       </ul>
-      <h4 style="margin: 24px 0 12px;">Compared to stock Inter:</h4>
+      <h4 style="margin: 24px 0 12px;">DM Sans advantages over the previous Inter base:</h4>
       <ol>
-        <li>Single-storey 'a' replaces the generic double-storey form</li>
-        <li>Tailed 'l' prevents confusion with '1' and 'I'</li>
-        <li>Serifed uppercase 'I' for instant recognition in body text</li>
-        <li>Spurred 'G' adds structural clarity at small sizes</li>
-        <li>Round quotes and commas for warmth over mechanical precision</li>
-        <li>Discretionary ligatures for typographic sophistication</li>
+        <li>Geometric DNA — no fighting neo-grotesque origins</li>
+        <li>Optical size axis (9-40) for automatic text/display switching</li>
+        <li>Same design team as Google Sans Text (Colophon Foundry)</li>
+        <li>Body-text-optimized metrics (~1.30x default line-height)</li>
+        <li>Weight range up to 1000 (Black) for variable font</li>
       </ol>
     </div>
   </section>
@@ -620,27 +666,21 @@
     <div class="section-label">Article Demo — realistic mixed content</div>
     <div class="article-demo specimen">
       <h2>The Invisible Art of Type Selection</h2>
-      <div class="byline">By Rishit V. — 7 Feb 2026 — 4 min read</div>
+      <div class="byline">By Rishit V. — 19 Feb 2026 — 4 min read</div>
       <p class="lede">A well-chosen typeface is like good posture: you only notice it when it's wrong. But the difference between "fine" and "right" compounds over hours of reading.</p>
       <p>Most developers never think about their UI font. They inherit whatever the OS provides — San Francisco on macOS, Segoe UI on Windows, Roboto on Android — and move on. And honestly? Those defaults are <em>excellent</em>. They're the product of millions of dollars and years of research.</p>
-      <p>But defaults are designed for <strong>everyone</strong>, which means they're optimized for <strong>no one in particular</strong>. A custom font lets you make opinionated choices: do you prefer geometric warmth or humanist flexibility? Tabular or proportional figures? Ligatures in your UI copy?</p>
+      <p>But defaults are designed for <strong>everyone</strong>, which means they're optimized for <strong>no one in particular</strong>. A custom font lets you make opinionated choices: do you prefer geometric warmth or humanist flexibility? Tabular or proportional figures? Softened or clinical terminals?</p>
 
-      <h3>The Single-Storey Question</h3>
-      <p>The lowercase <em>a</em> is the most contentious letter in type design. The double-storey form (with its little hat) is traditional — inherited from Renaissance scribes. The single-storey form (a simple circle and stem) is modern — Futura made it mainstream in 1927.</p>
-      <p>For R Sans, single-storey wins. Here's why:</p>
-      <ul style="padding-left: 24px; margin-bottom: 16px;">
-        <li>It <em>signals intentionality</em> — you know this isn't a default font</li>
-        <li>It pairs beautifully with R Mono's rounded <span class="inline-code">a</span> glyph</li>
-        <li>It reinforces the "circles meeting rectangles" geometric language</li>
-      </ul>
-      <p>Compare: <strong>"application"</strong> with single-storey <em>a</em> vs. the stock double-storey. The geometric form creates a more rhythmic, open texture — especially in words with multiple <em>a</em>'s.</p>
+      <h3>Why DM Sans as the Foundation</h3>
+      <p>DM Sans was designed by <strong>Colophon Foundry</strong> — the same team behind Google Sans Text. It has geometric DNA from birth: you don't have to fight neo-grotesque origins to make it feel warm and round. The optical size axis (9-40) automatically adjusts stroke contrast and spacing for different sizes.</p>
+      <p>At text sizes (<span class="inline-code">opsz=9-20</span>), DM Sans uses double-storey <em>a</em> and <em>g</em> — better for body text readability. At display sizes (<span class="inline-code">opsz=20-40</span>), it switches to the more geometric single-storey forms.</p>
 
-      <h3>Technical Details</h3>
-      <p>R Sans is built from <strong>Inter 4.1</strong> with character variants frozen via <span class="inline-code">pyftfeatfreeze</span>. The optical size axis is pinned to <span class="inline-code">16px</span> for body text optimization, and the line gap is increased to <span class="inline-code">164 units</span> for comfortable reading at 1.29× line-height.</p>
-      <div class="code-block">pyftfeatfreeze -f "cv01,cv05,cv08,cv09,cv10,cv11,cv12,cv13,ss03,zero,dlig" \
-  -R 'Inter Variable/R Sans' \
-  InterVariable.ttf RSans-Variable.ttf</div>
-      <p>The build produces 16 static instances (8 weights × upright + italic) plus variable fonts for web use. Total web payload: <strong>~350 KB</strong> for the variable font, or ~116 KB per static WOFF2.</p>
+      <h3>Terminal Softening</h3>
+      <p>The core creative transformation is <strong>terminal softening</strong>. DM Sans has clean, precise flat-cut terminals — beautiful for a geometric font, but slightly clinical for sustained reading. R Sans pulls terminal tips inward by 5-18 units (on a 1000 UPM grid) across 12 key glyphs.</p>
+      <p>The effect is subtle on any individual letter but cumulative across a paragraph. Compare the <em>c</em>, <em>e</em>, and <em>s</em> in the A/B comparison above — the rounder terminals give R Sans a gentle warmth that stock DM Sans lacks.</p>
+      <div class="code-block">cd r-sans && ./build.sh              # full build
+./build.sh --inspect    # dump glyph coordinates</div>
+      <p>The build produces 16 static instances (8 weights x upright + italic) plus variable fonts for web use. Total web payload: <strong>~89 KB</strong> for the variable WOFF2, or ~22 KB per static WOFF2.</p>
     </div>
   </section>
 
@@ -657,34 +697,34 @@
     <div class="section-label">Small & Caption Text</div>
     <div class="specimen">
       <div class="small-text" style="margin-bottom: 16px;">
-        At 13px, R Sans should remain legible and pleasant. The tailed 'l' and serifed 'I' become critical disambiguation tools at this size. Line-height matters even more: tight leading turns text into a wall. The extra line gap baked into R Sans means even cramped UIs get breathing room. Figures: 0123456789. Symbols: @#$%&*()!?
+        At 13px, R Sans should remain legible and pleasant. The serifed 'I' and tailed 'l' become critical disambiguation tools at this size. Line-height matters even more: tight leading turns text into a wall. DM Sans's native ~1.30x line-height means even cramped UIs get breathing room. Figures: 0123456789. Symbols: @#$%&*()!?
       </div>
       <div class="caption-text">
-        Figure 1.3 — Comparison of character variant impact at caption size. R Sans Regular 400, 11px/1.4.
-        Licensed under MIT. Built from Inter 4.1 by Rasmus Andersson.
+        Figure 1.3 — Comparison of terminal softening impact at caption size. R Sans Regular 400, 11px/1.4.
+        Licensed under SIL OFL. Built from DM Sans by Colophon Foundry.
       </div>
     </div>
   </section>
 
   <!-- ── Side-by-Side Comparison ───────────────────────────────── -->
   <section>
-    <div class="section-label">Comparison — R Sans vs. System Fonts</div>
+    <div class="section-label">Comparison — R Sans vs. Other Fonts</div>
     <div class="comparison-grid">
       <div class="comparison-card">
         <h4>R Sans (your font)</h4>
-        <div class="comp-text comp-rsans">Aagl1I0O fi fl ff "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
+        <div class="comp-text comp-rsans">Aagl1I0O "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
+      </div>
+      <div class="comparison-card">
+        <h4>Stock DM Sans</h4>
+        <div class="comp-text comp-dmsans">Aagl1I0O "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
       </div>
       <div class="comparison-card">
         <h4>System UI (SF Pro / Segoe)</h4>
-        <div class="comp-text comp-system">Aagl1I0O fi fl ff "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
-      </div>
-      <div class="comparison-card">
-        <h4>Arial / Helvetica</h4>
-        <div class="comp-text comp-arial">Aagl1I0O fi fl ff "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
+        <div class="comp-text comp-system">Aagl1I0O "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
       </div>
       <div class="comparison-card">
         <h4>R Mono (for reference)</h4>
-        <div class="comp-text" style="font-family: 'R Mono', monospace;">Aagl1I0O fi fl ff "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
+        <div class="comp-text" style="font-family: 'R Mono', monospace;">Aagl1I0O "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
       </div>
     </div>
   </section>
@@ -712,39 +752,34 @@
      SCRIPTS
      ═══════════════════════════════════════════════════════════════ -->
 <script>
-// ── Feature definitions ────────────────────────────────────────
+// ── Feature definitions (DM Sans stylistic sets) ──────────────
 const FEATURES = [
-  { tag: 'cv11', name: 'Single-storey a',     preview: 'a', frozen: false },
-  { tag: 'cv05', name: 'Tailed l',            preview: 'l', frozen: true },
-  { tag: 'cv01', name: 'Alternate 1',         preview: '1', frozen: false },
-  { tag: 'cv08', name: 'Serifed I',           preview: 'I', frozen: false },
-  { tag: 'cv09', name: 'Flat-top 3',          preview: '3', frozen: false },
-  { tag: 'cv10', name: 'Spurred G',           preview: 'G', frozen: true },
-  { tag: 'cv12', name: 'Compact f',           preview: 'f', frozen: true },
-  { tag: 'cv13', name: 'Compact t',           preview: 't', frozen: false },
-  { tag: 'cv02', name: 'Open 4',              preview: '4', frozen: false },
-  { tag: 'cv03', name: 'Open 6',              preview: '6', frozen: false },
-  { tag: 'cv04', name: 'Open 9',              preview: '9', frozen: false },
-  { tag: 'cv06', name: 'Simplified u',        preview: 'u', frozen: false },
-  { tag: 'cv07', name: 'Alternate sharp s',   preview: 'ß', frozen: false },
-  { tag: 'cv14', name: 'Alt capital sharp S',  preview: 'ẞ', frozen: false },
-  { tag: 'zero', name: 'Slashed zero',        preview: '0', frozen: true },
-  { tag: 'ss01', name: 'Open digits',         preview: '0369', frozen: false },
-  { tag: 'ss02', name: 'Disambiguation',      preview: 'Il1O0', frozen: false },
-  { tag: 'ss03', name: 'Round quotes',        preview: '\u201C\u201D\u2018\u2019', frozen: false },
-  { tag: 'dlig', name: 'Ligatures (fi fl ff)', preview: 'fi fl', frozen: false },
-  { tag: 'calt', name: 'Contextual alts',     preview: ':)', frozen: false },
+  { tag: 'ss01', name: 'Round quotes/commas',       preview: '\u201C\u201D , ;', frozen: false },
+  { tag: 'ss02', name: 'Single-storey a',            preview: 'a',  frozen: false },
+  { tag: 'ss03', name: 'Alternate g',                preview: 'g',  frozen: false },
+  { tag: 'ss04', name: 'Alternate u',                preview: 'u',  frozen: false },
+  { tag: 'ss05', name: 'Alternate y',                preview: 'y',  frozen: false },
+  { tag: 'ss06', name: 'Alternate Q (tail)',          preview: 'Q',  frozen: false },
+  { tag: 'ss07', name: 'Alternate digits',           preview: '1349', frozen: false },
+  { tag: 'ss08', name: 'Alternate quotes/arrows',    preview: '\u201C\u2192', frozen: false },
+  { tag: 'liga', name: 'Standard ligatures',         preview: 'fi fl', frozen: false },
+  { tag: 'calt', name: 'Contextual alternates',      preview: ':)', frozen: false },
+  { tag: 'tnum', name: 'Tabular figures',            preview: '0123', frozen: false },
+  { tag: 'frac', name: 'Fractions',                  preview: '1/2', frozen: false },
+  { tag: 'case', name: 'Case-sensitive forms',       preview: '(A)', frozen: false },
+  { tag: 'sups', name: 'Superscripts',               preview: '1st', frozen: false },
+  { tag: 'ordn', name: 'Ordinals',                   preview: '2nd', frozen: false },
 ];
 
 // Presets
 const PRESETS = {
-  current: ['cv05', 'cv10', 'cv12', 'cv13', 'zero'],
-  refined: ['cv01', 'cv05', 'cv08', 'cv09', 'cv10', 'cv11', 'cv12', 'ss03', 'zero', 'dlig'],
-  geometric: ['cv01', 'cv02', 'cv03', 'cv04', 'cv05', 'cv06', 'cv08', 'cv09', 'cv10', 'cv11', 'cv12', 'ss03', 'zero', 'dlig'],
-  none: [],
+  default: [],           // R Sans ships clean — warmth is in the outlines, not features
+  warm: ['ss01'],        // Round quotes for extra warmth
+  display: ['ss02', 'ss03', 'ss07'],  // Single-storey a, alt g, alt digits
+  none: [],              // Stock DM Sans (same as default — features are in the outlines)
 };
 
-let activeFeatures = new Set(PRESETS.refined);
+let activeFeatures = new Set(PRESETS.default);
 
 // ── Build feature toggles ──────────────────────────────────────
 function buildFeatureGrid() {
@@ -785,10 +820,8 @@ function applyFeatures() {
   document.querySelectorAll('.specimen, .specimen *, .hero-text, .hero-sub, blockquote, .body-text, .waterfall, .list-demo, .article-demo, .article-demo *, .small-text, .caption-text, .comp-rsans, .diag-chars, .pangram-block, .weight-ramp-text, .glyph-cell, #sandbox, .ft-preview').forEach(el => {
     el.style.fontFeatureSettings = css;
   });
-  // Update CSS output
   document.getElementById('feature-css-output').textContent =
     `font-feature-settings: ${css};`;
-  // Sync checkboxes
   document.querySelectorAll('#features-grid input[type="checkbox"]').forEach(cb => {
     cb.checked = activeFeatures.has(cb.dataset.tag);
   });
@@ -800,12 +833,11 @@ function applyPreset(name) {
   applyFeatures();
 }
 
-// ── Weight & size sliders ──────────────────────────────────────
+// ── Weight, size & opsz sliders ─────────────────────────────────
 document.getElementById('weight-slider').addEventListener('input', e => {
   const w = e.target.value;
   document.getElementById('weight-val').textContent = w;
   document.querySelectorAll('.specimen, .specimen *').forEach(el => {
-    // Don't override explicit weight-ramp weights
     if (!el.closest('.weight-ramp') && !el.closest('.waterfall')) {
       el.style.fontWeight = w;
     }
@@ -817,6 +849,14 @@ document.getElementById('size-slider').addEventListener('input', e => {
   document.getElementById('size-val').textContent = s;
   document.querySelectorAll('.body-text p, .list-demo li, .article-demo p').forEach(el => {
     el.style.fontSize = s + 'px';
+  });
+});
+
+document.getElementById('opsz-slider').addEventListener('input', e => {
+  const o = e.target.value;
+  document.getElementById('opsz-val').textContent = o;
+  document.querySelectorAll('.specimen, .specimen *').forEach(el => {
+    el.style.fontVariationSettings = `"opsz" ${o}`;
   });
 });
 
