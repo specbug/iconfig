@@ -1,0 +1,36 @@
+/* ===== Base: R Sans everywhere ===== */
+body, .notebook_app, #notebook, .container,
+div.prompt, .edit_mode div.cell.selected div.input_prompt,
+.command_mode div.cell.selected div.input_prompt,
+#menubar, .navbar, .nav, .dropdown-menu,
+.modal, .modal-content, .btn, .form-control,
+.celltoolbar, .ctb_hideshow, .tags_button_container {
+    font-family: "R Sans", sans-serif !important;
+}
+
+/* Rendered markdown cells */
+div.text_cell_render, div.text_cell_render p,
+div.text_cell_render li, div.text_cell_render td,
+div.text_cell_render th, div.text_cell_render blockquote,
+div.text_cell_render h1, div.text_cell_render h2,
+div.text_cell_render h3, div.text_cell_render h4,
+div.text_cell_render h5, div.text_cell_render h6 {
+    font-family: "R Sans", sans-serif !important;
+}
+
+/* ===== Code: R Mono only ===== */
+/* Code editor (CodeMirror) */
+.CodeMirror pre, .CodeMirror-dialog, .CodeMirror-dialog .CodeMirror-search-field,
+.terminal-app .terminal {
+    font-family: "R Mono", monospace !important;
+}
+
+/* Code output areas */
+div.output_area pre, div.output_subarea pre, div.output_text pre {
+    font-family: "R Mono", monospace !important;
+}
+
+/* Inline code in markdown */
+div.text_cell_render code, div.text_cell_render pre {
+    font-family: "R Mono", monospace !important;
+}
