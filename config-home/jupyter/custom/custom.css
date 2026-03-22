@@ -1,3 +1,10 @@
+/* ===== Font rendering: match native app crispness ===== */
+*, *::before, *::after {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
 /* ===== Base: R Sans everywhere ===== */
 body, .notebook_app, #notebook, .container,
 div.prompt, .edit_mode div.cell.selected div.input_prompt,
