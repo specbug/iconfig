@@ -4,7 +4,11 @@
     text-rendering: optimizeLegibility;
 }
 
-/* ===== Base: R Sans everywhere ===== */
+/* ==========================================================
+   Classic Notebook (Jupyter Notebook < 7, uses CodeMirror 5)
+   ========================================================== */
+
+/* Base: R Sans everywhere */
 body, .notebook_app, #notebook, .container,
 div.prompt, .edit_mode div.cell.selected div.input_prompt,
 .command_mode div.cell.selected div.input_prompt,
@@ -24,7 +28,7 @@ div.text_cell_render h5, div.text_cell_render h6 {
     font-family: "R Sans", sans-serif !important;
 }
 
-/* ===== Code: R Mono only ===== */
+/* Code: R Mono only (CM5) */
 .CodeMirror pre, .CodeMirror-dialog, .CodeMirror-dialog .CodeMirror-search-field,
 .terminal-app .terminal {
     font-family: "R Mono", monospace !important;
@@ -38,7 +42,7 @@ div.text_cell_render code, div.text_cell_render pre {
     font-family: "R Mono", monospace !important;
 }
 
-/* ===== Code cell: dark background for crisp font rendering ===== */
+/* Code cell: dark background (CM5) */
 div.input_area {
     background-color: #282c34 !important;
     border-color: #3e4452 !important;
@@ -55,25 +59,12 @@ div.input_area {
     border-right: 1px solid #3e4452 !important;
 }
 
-.CodeMirror-linenumber {
-    color: #5c6370 !important;
-}
+.CodeMirror-linenumber { color: #5c6370 !important; }
+.CodeMirror-cursor { border-left-color: #528bff !important; }
+.CodeMirror-selected, .CodeMirror-focused .CodeMirror-selected { background: #3e4452 !important; }
+.CodeMirror-matchingbracket { color: #98c379 !important; border-bottom: 1px solid #98c379; background: transparent !important; }
 
-.CodeMirror-cursor {
-    border-left-color: #528bff !important;
-}
-
-.CodeMirror-selected, .CodeMirror-focused .CodeMirror-selected {
-    background: #3e4452 !important;
-}
-
-.CodeMirror-matchingbracket {
-    color: #98c379 !important;
-    border-bottom: 1px solid #98c379;
-    background: transparent !important;
-}
-
-/* Syntax highlighting — One Dark (code cells only) */
+/* Syntax highlighting — One Dark (CM5) */
 .cm-s-ipython.CodeMirror { color: #abb2bf !important; }
 .cm-s-ipython span.cm-keyword { color: #c678dd !important; }
 .cm-s-ipython span.cm-atom { color: #d19a66 !important; }
@@ -97,3 +88,100 @@ div.input_area {
 .cm-s-ipython span.cm-quote { color: #98c379 !important; }
 .cm-s-ipython span.cm-link { color: #61afef !important; }
 .cm-s-ipython span.cm-error { color: #e06c75 !important; }
+
+/* ==========================================================
+   Notebook 7 / JupyterLab (uses CodeMirror 6)
+   ========================================================== */
+
+/* Override JupyterLab CSS variables for fonts */
+:root {
+    --jp-ui-font-family: "R Sans", sans-serif !important;
+    --jp-content-font-family: "R Sans", sans-serif !important;
+    --jp-code-font-family: "R Mono", monospace !important;
+    --jp-cell-prompt-font-family: "R Mono", monospace !important;
+}
+
+/* Code cell: dark background (CM6) */
+.jp-InputArea-editor .cm-editor {
+    background-color: #282c34 !important;
+}
+
+.jp-InputArea-editor .cm-editor .cm-gutters {
+    background-color: #282c34 !important;
+    border-right: 1px solid #3e4452 !important;
+    color: #5c6370 !important;
+}
+
+.jp-InputArea-editor .cm-editor .cm-content {
+    color: #abb2bf !important;
+    caret-color: #528bff !important;
+}
+
+.jp-InputArea-editor .cm-editor .cm-activeLine {
+    background-color: rgba(44, 49, 58, 0.5) !important;
+}
+
+.jp-InputArea-editor .cm-editor .cm-selectionBackground,
+.jp-InputArea-editor .cm-editor .cm-focused .cm-selectionBackground,
+.jp-InputArea-editor .cm-editor ::selection {
+    background-color: #3e4452 !important;
+}
+
+.jp-InputArea-editor .cm-editor .cm-matchingBracket {
+    color: #98c379 !important;
+    background: transparent !important;
+    outline: 1px solid #98c379;
+}
+
+.jp-InputArea-editor {
+    background-color: #282c34 !important;
+    border: 1px solid #3e4452 !important;
+    border-radius: 4px !important;
+}
+
+/* Syntax highlighting — One Dark (CM6) */
+.jp-InputArea-editor .cm-editor .tok-keyword { color: #c678dd !important; }
+.jp-InputArea-editor .cm-editor .tok-atom { color: #d19a66 !important; }
+.jp-InputArea-editor .cm-editor .tok-number { color: #d19a66 !important; }
+.jp-InputArea-editor .cm-editor .tok-definition { color: #61afef !important; }
+.jp-InputArea-editor .cm-editor .tok-variableName { color: #abb2bf !important; }
+.jp-InputArea-editor .cm-editor .tok-variableName2 { color: #e06c75 !important; }
+.jp-InputArea-editor .cm-editor .tok-typeName { color: #e5c07b !important; }
+.jp-InputArea-editor .cm-editor .tok-propertyName { color: #e06c75 !important; }
+.jp-InputArea-editor .cm-editor .tok-operator { color: #56b6c2 !important; }
+.jp-InputArea-editor .cm-editor .tok-comment { color: #5c6370 !important; font-style: italic; }
+.jp-InputArea-editor .cm-editor .tok-string { color: #98c379 !important; }
+.jp-InputArea-editor .cm-editor .tok-string2 { color: #98c379 !important; }
+.jp-InputArea-editor .cm-editor .tok-meta { color: #abb2bf !important; }
+.jp-InputArea-editor .cm-editor .tok-builtin { color: #e5c07b !important; }
+.jp-InputArea-editor .cm-editor .tok-bracket { color: #abb2bf !important; }
+.jp-InputArea-editor .cm-editor .tok-tagName { color: #e06c75 !important; }
+.jp-InputArea-editor .cm-editor .tok-attributeName { color: #d19a66 !important; }
+.jp-InputArea-editor .cm-editor .tok-heading { color: #e06c75 !important; }
+.jp-InputArea-editor .cm-editor .tok-link { color: #61afef !important; }
+.jp-InputArea-editor .cm-editor .tok-invalid { color: #e06c75 !important; }
+.jp-InputArea-editor .cm-editor .tok-bool { color: #d19a66 !important; }
+.jp-InputArea-editor .cm-editor .tok-punctuation { color: #abb2bf !important; }
+
+/* Also style JupyterLab's Python-specific highlight classes */
+.jp-InputArea-editor .cm-editor .ͼ1 .ͼ5 { color: #c678dd !important; } /* keyword fallback */
+.jp-InputArea-editor .cm-editor .cm-line { color: #abb2bf !important; }
+
+/* Output areas (CM6 / Notebook 7) */
+.jp-OutputArea-output pre {
+    font-family: "R Mono", monospace !important;
+    color: #abb2bf !important;
+}
+
+/* Rendered markdown (Notebook 7) */
+.jp-RenderedHTMLCommon {
+    font-family: "R Sans", sans-serif !important;
+}
+
+.jp-RenderedHTMLCommon code {
+    font-family: "R Mono", monospace !important;
+}
+
+.jp-RenderedHTMLCommon pre {
+    font-family: "R Mono", monospace !important;
+}
