@@ -530,37 +530,68 @@ WEIGHTS = {
 # Applied per-instance since adding points breaks gvar deltas.
 # Each function adapts to the instance's actual glyph metrics.
 
+def _stem_corners(coords):
+    """Return (bl_x, tl_x, tr_x, br_x, y_top) for a stem glyph.
+
+    Works for upright rectangles (slant 0) and italic parallelograms.
+    Corners are taken from the points sitting on the baseline (y≈0) and
+    the top edge (y≈y_top), so the stem's slant is preserved. All x/y are
+    rounded to int to match fontTools integer bounding-box behavior.
+    """
+    y_top = int(round(max(y for x, y in coords)))
+    top_pts = sorted((x, y) for x, y in coords if y >= y_top - 2)
+    bot_pts = sorted((x, y) for x, y in coords if y <= 2)
+    if len(top_pts) < 2 or len(bot_pts) < 2:
+        return None
+    return (int(round(bot_pts[0][0])), int(round(top_pts[0][0])),
+            int(round(top_pts[-1][0])), int(round(bot_pts[-1][0])), y_top)
+
 def disambiguate_I(font):
     """Add subtle serifs to uppercase 'I' for I/l distinction.
 
-    Transforms the plain rectangle into a serifed form.
-    Serif dimensions scale with stem width.
+    Slant-aware: serifs follow the stem's actual slant, so the italic 'I'
+    stays slanted instead of being rebuilt as an upright serifed bar.
+    Serif dimensions scale with stem width. For upright instances this
+    reproduces the previous plain-rectangle → serifed transform exactly.
     """
     glyf = font['glyf']
     g = glyf['I']
     if g.numberOfContours <= 0:
         return  # composite, skip
 
-    coords = list(g.coordinates)
-    # Current: rectangle (xMin,0) → (xMin,yMax) → (xMax,yMax) → (xMax,0)
-    x_min, x_max = g.xMin, g.xMax
-    y_min, y_max = 0, coords[1][1]  # baseline to cap height
+    corners = _stem_corners(list(g.coordinates))
+    if corners is None:
+        return  # unexpected topology, skip
+    bl_x, tl_x, _tr_x, br_x, y_top = corners
 
-    stem_w = x_max - x_min
-    center = (x_min + x_max) // 2
+    stem_w = br_x - bl_x
+    slant = (tl_x - bl_x) / y_top if y_top else 0.0
     serif_ext = max(int(stem_w * 0.38), 20)   # ~30 units at Regular
     serif_h = max(int(stem_w * 0.22), 14)     # ~18 units at Regular
 
-    sl = center - stem_w // 2 - serif_ext  # serif left edge
-    sr = center + stem_w // 2 + serif_ext  # serif right edge
+    def left_edge(y):
+        return bl_x + slant * y
 
-    # New outline: serifed I (12 ON points, clockwise)
-    new_coords = [
-        (sl, y_min), (sl, serif_h), (x_min, serif_h),       # bottom-left serif
-        (x_min, y_max - serif_h), (sl, y_max - serif_h), (sl, y_max),  # top-left serif
-        (sr, y_max), (sr, y_max - serif_h), (x_max, y_max - serif_h),  # top-right serif
-        (x_max, serif_h), (sr, serif_h), (sr, y_min),       # bottom-right serif
+    def right_edge(y):
+        return br_x + slant * y
+
+    # New outline: serifed I (12 ON points, clockwise), each x offset by the
+    # stem slant at its own height so the serifs ride the slanted stem.
+    pts = [
+        (left_edge(0) - serif_ext, 0),                              # bottom-left serif
+        (left_edge(serif_h) - serif_ext, serif_h),
+        (left_edge(serif_h), serif_h),
+        (left_edge(y_top - serif_h), y_top - serif_h),              # top-left serif
+        (left_edge(y_top - serif_h) - serif_ext, y_top - serif_h),
+        (left_edge(y_top) - serif_ext, y_top),
+        (right_edge(y_top) + serif_ext, y_top),                     # top-right serif
+        (right_edge(y_top - serif_h) + serif_ext, y_top - serif_h),
+        (right_edge(y_top - serif_h), y_top - serif_h),
+        (right_edge(serif_h), serif_h),                             # bottom-right serif
+        (right_edge(serif_h) + serif_ext, serif_h),
+        (right_edge(0) + serif_ext, 0),
     ]
+    new_coords = [(int(round(x)), int(round(y))) for x, y in pts]
 
     g.coordinates = type(g.coordinates)(new_coords)
     g.flags = array.array('B', [1] * 12)
@@ -568,18 +599,19 @@ def disambiguate_I(font):
     g.numberOfContours = 1
     g.recalcBounds(glyf)
 
-    # Update advance width to accommodate serifs
+    # Symmetric sidebearings around the serifed form.
     hmtx = font['hmtx']
-    old_w, _ = hmtx['I']
-    new_w = sr - sl + (sl - g.xMin) + (old_w - x_max)
-    # Keep sidebearings symmetric
-    new_lsb = sl
-    hmtx['I'] = (max(old_w, sr - sl + abs(sl) + abs(sl)), new_lsb)
+    glyph_left = min(x for x, _ in new_coords)
+    glyph_right = max(x for x, _ in new_coords)
+    hmtx['I'] = (int(glyph_right + glyph_left), int(glyph_left))
 
 def disambiguate_l(font):
     """Add a rightward tail to lowercase 'l' for l/1/I distinction.
 
-    Extends the bottom-right of the stem into a gentle curve.
+    Slant-aware: reads the actual stem corners so the italic 'l' keeps its
+    slanted parallelogram stem (instead of being rebuilt as an upright bar)
+    and the tail curves off the slanted right edge. For upright instances
+    this reproduces the previous tailed-l transform exactly.
     """
     glyf = font['glyf']
     g = glyf['l']
@@ -587,22 +619,32 @@ def disambiguate_l(font):
         return
 
     coords = list(g.coordinates)
-    x_min, x_max = g.xMin, g.xMax
-    y_max = coords[1][1]  # top of stem
+    orig_xmin = int(round(min(x for x, _ in coords)))
+    orig_xmax = int(round(max(x for x, _ in coords)))
+    corners = _stem_corners(coords)
+    if corners is None:
+        return
+    bl_x, tl_x, tr_x, br_x, y_top = corners
 
-    stem_w = x_max - x_min
-    tail_len = max(int(stem_w * 0.65), 40)     # ~55 units at Regular
-    curve_h = max(int(stem_w * 0.55), 35)      # height where curve starts
+    stem_w = tr_x - tl_x                        # horizontal stem width (~84)
+    slant = (tl_x - bl_x) / y_top if y_top else 0.0
+    tail_len = max(int(stem_w * 0.65), 40)      # ~55 units at Regular
+    curve_h = max(int(stem_w * 0.55), 35)       # height where curve starts
 
-    # New outline: l with tail (6 points: 5 ON + 1 OFF)
-    new_coords = [
-        (x_min, 0),                             # bottom-left
-        (x_min, y_max),                         # top-left
-        (x_max, y_max),                         # top-right
-        (x_max, curve_h),                       # stem going down to curve start
-        (x_max + tail_len // 3, curve_h // 4),  # OFF: curve control
-        (x_max + tail_len, 0),                  # tail tip at baseline
+    def right_edge(y):
+        return br_x + slant * y
+
+    # New outline: l with tail (6 points: 5 ON + 1 OFF). The stem follows the
+    # slant; the tail hooks rightward off the slanted right edge at the foot.
+    pts = [
+        (bl_x, 0),                                  # bottom-left
+        (tl_x, y_top),                              # top-left
+        (tr_x, y_top),                              # top-right
+        (right_edge(curve_h), curve_h),             # down slanted right edge
+        (br_x + tail_len // 3, curve_h // 4),       # OFF: curve control
+        (br_x + tail_len, 0),                       # tail tip at baseline
     ]
+    new_coords = [(int(round(x)), int(round(y))) for x, y in pts]
     new_flags = [1, 1, 1, 1, 0, 1]
 
     g.coordinates = type(g.coordinates)(new_coords)
@@ -611,12 +653,13 @@ def disambiguate_l(font):
     g.numberOfContours = 1
     g.recalcBounds(glyf)
 
-    # Update advance width
+    # Advance: grow only if the tail extends past the original right edge,
+    # preserving the original right sidebearing.
     hmtx = font['hmtx']
-    old_w, old_lsb = hmtx['l']
-    new_right = x_max + tail_len
-    new_w = new_right + (old_w - x_max)  # preserve right sidebearing ratio
-    hmtx['l'] = (max(old_w, new_w), x_min)
+    old_w, _ = hmtx['l']
+    rsb = old_w - orig_xmax
+    new_xmax = max(orig_xmax, br_x + tail_len)
+    hmtx['l'] = (int(round(new_xmax + rsb)), orig_xmin)
 
 def disambiguate_zero(font):
     """Add a center dot to zero for 0/O distinction.
