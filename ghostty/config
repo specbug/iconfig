@@ -1,0 +1,35 @@
+# ~/.config/ghostty/config — cmux reads this file
+
+theme = R Graphite
+
+# Type
+font-family = "R Mono"
+font-size = 13
+adjust-cell-height = 10%
+bold-is-bright = false
+
+# Room to think
+window-padding-x = 16
+window-padding-y = 12
+window-padding-balance = true
+
+# Stolid cursor: no blink, no shape-shifting at the prompt
+cursor-style = block
+cursor-style-blink = false
+shell-integration-features = no-cursor
+
+# The agent you're steering is the one at full contrast
+unfocused-split-opacity = 0.8
+unfocused-split-fill = #1c1e22
+split-divider-color = #2e3036
+
+# Codex leans on dim text; keep it legible
+faint-opacity = 0.6
+minimum-contrast = 1.1
+
+# Opaque, no glass
+background-opacity = 1
+
+# cmux-only keys (plain Ghostty will warn on these)
+sidebar-background = #16171b
+sidebar-tint-opacity = 1

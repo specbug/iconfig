@@ -1,0 +1,26 @@
+# R Graphite — warm bone on graphite, one ember accent. Dark only.
+# Slots tuned for Claude Code (dark-ansi) and Codex (tui.theme = "ansi").
+
+palette = 0=#292b30
+palette = 1=#91524b
+palette = 2=#497151
+palette = 3=#a1854d
+palette = 4=#4c6889
+palette = 5=#936b8d
+palette = 6=#558b91
+palette = 7=#938e87
+palette = 8=#404248
+palette = 9=#e27963
+palette = 10=#6fac7c
+palette = 11=#dabd7e
+palette = 12=#88abd3
+palette = 13=#c397bc
+palette = 14=#82b9bf
+palette = 15=#e4dfd7
+
+background = #1c1e22
+foreground = #dad5cc
+cursor-color = #e27963
+cursor-text = #1c1e22
+selection-background = #53362e
+selection-foreground = #e4dfd7
