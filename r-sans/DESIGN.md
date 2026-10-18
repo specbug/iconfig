@@ -189,6 +189,21 @@ Colour is a setting, not an outline change: the variable font at **wght 425** ma
 
 Verified across wght 100/400/700/1000 × opsz 9/14/17/24/40, upright and italic: x-height exactly ×1.048, overshoots of `n o e s` 12–13 units everywhere, ascenders/caps/descenders fixed (one sub-unit exception: the wght-100 `b` stem top, which sits 6 units under the ascender), no contour direction or count changes, OTS sanitizer passes on all 36 files.
 
+### Evidence
+
+| | |
+|---|---|
+| ![specimen](docs/v2/specimen.png) | Two paragraphs at 17px/1.6 and a 64px line: v1, v2, Google Sans Text. v2 wraps where Google Sans Text does |
+| ![terminals](docs/v2/terminals.png) | `c e s` at 300px: stock DM Sans, v1 (tips pulled into the counter), v2 (tips tapered, cut opened) |
+| ![terminals, upright and italic](docs/v2/terminals-italic.png) | `ces a ces` upright and italic against stock and Google Sans Text |
+| ![variation grid](docs/v2/variation-grid.png) | wght × opsz grid, upright and italic |
+| ![edge cases](docs/v2/edge-cases.png) | ď ľ ť đ ħ ß ﬁ ǘ ĳ at the grid extremes |
+| ![statics](docs/v2/statics.png) | Static instances keep the serifed I, tailed l and dotted zero |
+| ![ss03](docs/v2/ss03-ab.png) | `ss03` A/B in g-heavy text (sixeleven keeps `ss03`) |
+| ![site](docs/v2/site-article-light.png) | sixeleven before/after, light |
+| ![site dark](docs/v2/site-article-dark.png) | sixeleven before/after, dark |
+| ![phone](docs/v2/site-phone.png) | sixeleven at 390px |
+
 ---
 
 ## DM Sans Stylistic Sets
