@@ -62,7 +62,7 @@ INSPECT_MODE=false
 # ── Configuration ────────────────────────────────────────────────────
 OPSZ=14.0              # Optical size for static instances (DM Sans range: 9–40)
                        # 14 = body text sweet spot, double-storey a/g retained
-DMSANS_REPO="https://github.com/google/fonts/raw/main/ofl/dmsans"
+DMSANS_REPO="https://raw.githubusercontent.com/google/fonts/main/ofl/dmsans"
 
 # ── Frozen features ─────────────────────────────────────────────────
 # These stylistic sets are baked into the default glyphs via pyftfeatfreeze.
