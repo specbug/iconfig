@@ -26,7 +26,7 @@
 # 1. TERMINAL SOFTENING — The core creative transformation.
 #    DM Sans has clean geometric terminals with flat, sharp cuts.
 #    R Sans softens 12 key glyphs (a, c, e, f, g, j, n, r, s, t, u, y)
-#    pulling terminal tips inward and rounding junctions for the warm,
+#    tapering terminal tips and rounding junctions for the warm,
 #    slightly organic feel of Styrene B — without losing geometric clarity.
 #
 # 2. DISAMBIGUATION SET
@@ -63,6 +63,10 @@ INSPECT_MODE=false
 OPSZ=14.0              # Optical size for static instances (DM Sans range: 9–40)
                        # 14 = body text sweet spot, double-storey a/g retained
 DMSANS_REPO="https://raw.githubusercontent.com/google/fonts/main/ofl/dmsans"
+
+# ── Terminal softening ──────────────────────────────────────────────
+TERMINAL_TUCK=8        # c e s: outer terminal corner tucks in (v1: 13–16)
+APERTURE_LIFT=9        # c e s: terminal cut moves away from the counter
 
 # ── Frozen features ─────────────────────────────────────────────────
 # These stylistic sets are baked into the default glyphs via pyftfeatfreeze.
@@ -185,12 +189,14 @@ fi
 # ── Step 2: Terminal softening surgery ───────────────────────────────
 
 echo "==> Performing terminal softening surgery..."
-python3 - "$BUILD_DIR" << 'SURGERY'
+python3 - "$BUILD_DIR" "$TERMINAL_TUCK" "$APERTURE_LIFT" << 'SURGERY'
 import os
 import sys
 from fontTools.ttLib import TTFont
 
 BUILD = sys.argv[1]
+TUCK = int(sys.argv[2])
+LIFT = int(sys.argv[3])
 
 # ── Terminal softening ──────────────────────────────────────────────
 # Soften sharp/flat terminals on 12 key glyphs to create warmth.
@@ -226,88 +232,84 @@ def verify_points(coords, checks, tolerance=50):
             return False
     return True
 
-def surgery_c(glyf):
-    """Soften both terminal bars of 'c'.
+def open_terminal(coords, off_outer, outer, inner, off_inner, away, inward, share=1.0):
+    """Soften a flat terminal cut while opening the aperture (v2).
 
-    DM Sans 'c' has flat horizontal bars at the terminals.
-    Upright: top bar pts 11-12, bottom bar pts 28-29.
-    Italic has different topology — verify before applying.
+    The outer corner tucks in (TUCK) so the stroke end tapers and reads
+    soft; the whole cut moves AWAY from the counter (LIFT), the inner
+    corner more than the outer, so the cut turns slightly outward.
+      away    +1 = terminal opens upward (top of c, s), -1 = downward
+      inward  direction the outer corner tucks along x (-1 = leftward)
+      share   fraction of LIFT (a glyph that opens at both ends takes less)
+    v1 pulled tips toward the counter, which closed c/e below stock DM Sans.
+    """
+    t, l = TUCK, LIFT * share
+    soften(coords, [
+        (off_outer, inward * round(t * 0.6), away * round(l * 0.25)),
+        (outer,     inward * t,              away * round(l * 0.65)),
+        (inner,    -inward * round(t * 0.35), away * round(l)),
+        (off_inner, -inward * round(t * 0.25), away * round(l * 0.55)),
+    ])
+
+def surgery_c(glyf):
+    """Soften both terminals of 'c' and open its aperture.
+
+    DM Sans 'c' has flat horizontal cuts at both terminals.
+    Upright: top cut pts 11-12, bottom cut pts 28-29.
+    Italic: same topology shifted by one point (12-13, 29-30).
     """
     g = glyf['c']
     c = list(g.coordinates)
-    # Verify upright topology (32 points, bars at specific positions)
-    if verify_points(c, [(11, 526, 361), (12, 440, 361), (28, 440, 165), (29, 526, 165)]):
-        soften(c, [
-            (10, -8, -4), (11, -16, -7), (12, 6, -3), (13, 4, -3),
-            (27, 4, 3), (28, 6, 3), (29, -16, 7), (30, -8, 4),
-        ])
-        g.coordinates = type(g.coordinates)(c)
-        g.recalcBounds(glyf)
-        print("    'c': softened top + bottom terminals")
-    else:
-        # Italic or different topology: find terminal bars by searching
-        # for horizontal ON-ON pairs near the right side of the glyph
-        x_mid = (g.xMin + g.xMax) / 2
-        y_mid = (g.yMin + g.yMax) / 2
-        n = len(c)
-        modified = False
-        for i in range(n):
-            x, y = c[i]
-            if x > x_mid + (g.xMax - x_mid) * 0.6:
-                # Point near right edge — potential terminal tip
-                c[i] = (x - 12, y + (6 if y < y_mid else -6))
-                modified = True
-        if modified:
+    for o, name in [(0, 'upright'), (1, 'italic')]:
+        if verify_points(c, [(11 + o, 526 + 17 * o, 361), (12 + o, 440 + 17 * o, 361),
+                             (28 + o, 440 - 17 * o, 165), (29 + o, 526 - 17 * o, 165)],
+                         tolerance=12):
+            # both ends open, so each takes a smaller share of the lift
+            open_terminal(c, 10 + o, 11 + o, 12 + o, 13 + o, away=+1, inward=-1, share=0.4)
+            open_terminal(c, 30 + o, 29 + o, 28 + o, 27 + o, away=-1, inward=-1, share=0.4)
             g.coordinates = type(g.coordinates)(c)
             g.recalcBounds(glyf)
-            print("    'c': softened terminals (adaptive)")
-        else:
-            print("    'c': skipped (unexpected topology)")
+            print(f"    'c': softened + opened both terminals ({name})")
+            return
+    print("    'c': skipped (unexpected topology)")
 
 def surgery_e(glyf):
-    """Soften the bottom-right terminal of 'e'."""
+    """Soften the bottom-right terminal of 'e' and open its aperture.
+
+    Upright cut pts 33-34; italic same topology shifted by two (35-36).
+    The crossbar end is left alone (v1's adaptive italic rule caught it).
+    """
     g = glyf['e']
     c = list(g.coordinates)
-    if verify_points(c, [(33, 424, 142), (34, 507, 142)]):
-        soften(c, [
-            (32, 4, 3), (33, 6, 4), (34, -15, 8), (35, -10, 5),
-        ])
-        g.coordinates = type(g.coordinates)(c)
-        g.recalcBounds(glyf)
-        print("    'e': softened terminal")
-    else:
-        # Adaptive: find the terminal bar (rightmost ON-ON horizontal pair
-        # in the lower half of the glyph)
-        y_mid = (g.yMin + g.yMax) / 2
-        x_mid = (g.xMin + g.xMax) / 2
-        n = len(c)
-        modified = False
-        for i in range(n):
-            x, y = c[i]
-            if y < y_mid and x > x_mid + (g.xMax - x_mid) * 0.5:
-                c[i] = (x - 10, y + 5)
-                modified = True
-        if modified:
+    for o, name in [(0, 'upright'), (2, 'italic')]:
+        if verify_points(c, [(33 + o, 424 - 21 * (o // 2), 142), (34 + o, 507 - 21 * (o // 2), 142)],
+                         tolerance=12):
+            open_terminal(c, 35 + o, 34 + o, 33 + o, 32 + o, away=-1, inward=-1)
             g.coordinates = type(g.coordinates)(c)
             g.recalcBounds(glyf)
-            print("    'e': softened terminal (adaptive)")
-        else:
-            print("    'e': skipped (unexpected topology)")
+            print(f"    'e': softened + opened terminal ({name})")
+            return
+    print("    'e': skipped (unexpected topology)")
 
 def surgery_s(glyf):
-    """Soften both terminal bars of 's'."""
+    """Soften both terminals of 's' and open its apertures.
+
+    Upper cut pts 29-30 (outer, inner), lower cut pts 4-5; the italic has
+    the same indices.
+    """
     g = glyf['s']
     c = list(g.coordinates)
-    if verify_points(c, [(29, 443, 388), (30, 360, 388), (4, 44, 159), (5, 130, 159)]):
-        soften(c, [
-            (28, -6, -3), (29, -13, -5), (30, 5, -2), (31, 3, -2),
-            (3, 6, 3), (4, 13, 5), (5, -5, 2), (6, -3, 2),
-        ])
-        g.coordinates = type(g.coordinates)(c)
-        g.recalcBounds(glyf)
-        print("    's': softened upper + lower terminals")
-    else:
-        print("    's': skipped (italic topology differs)")
+    for name, (ux, ix, lx, jx) in [('upright', (443, 360, 44, 130)),
+                                   ('italic', (465, 382, 26, 112))]:
+        if verify_points(c, [(29, ux, 388), (30, ix, 388), (4, lx, 159), (5, jx, 159)],
+                         tolerance=12):
+            open_terminal(c, 28, 29, 30, 31, away=+1, inward=-1)
+            open_terminal(c, 3, 4, 5, 6, away=-1, inward=+1)
+            g.coordinates = type(g.coordinates)(c)
+            g.recalcBounds(glyf)
+            print(f"    's': softened + opened both terminals ({name})")
+            return
+    print("    's': skipped (unexpected topology)")
 
 def surgery_t(glyf):
     """Soften the bottom hook of 't'."""
@@ -873,7 +875,7 @@ echo ""
 echo "Design choices:"
 echo "  Base:         DM Sans (by Colophon Foundry)"
 echo "  Features:     ${FEATURES} (frozen into default glyphs)"
-echo "  Surgery:      Terminal softening on 12 glyphs"
+echo "  Surgery:      Terminal softening on 12 glyphs (c/e/s apertures opened)"
 echo "  Disambig:     Serifed I, tailed l, dotted zero (static instances)"
 echo "  Line height:  ~1.30x (DM Sans native, body text optimized)"
 echo "  Optical size: ${OPSZ} (pinned for body text sweet spot)"
