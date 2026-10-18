@@ -185,7 +185,7 @@ v2 fixes these as proportions and rhythm, never shapes: no outline is borrowed f
 | colour @ wght 400 | 0.362 | 0.363 | 0.375 | |
 | colour @ wght 425 | | **0.375** | | 0.372–0.380 |
 
-Colour is a setting, not an outline change: the variable font at **wght 425** matches Google Sans Text's paragraph density while semibold (0.472) and bold (0.513) stay clearly distinct. Italic apertures (de-slanted): `c` 0.322 → 0.349, `e` 0.163 → 0.179.
+Colour is a setting, not an outline change: the variable font at **wght 425** matches Google Sans Text's paragraph density while semibold (0.472) and bold (0.513) stay clearly distinct. On sixeleven, measured against anthropic.com/engineering, paragraphs still read faded at 425 with `oklch(0.25)` ink, so the site settled on **450 with `oklch(0.20)` ink in light mode** (17.4:1) and **425 with `oklch(0.92)` ink in dark mode**, where light text on dark blooms. Italic apertures (de-slanted): `c` 0.322 → 0.349, `e` 0.163 → 0.179.
 
 Verified across wght 100/400/700/1000 × opsz 9/14/17/24/40, upright and italic: x-height exactly ×1.048, overshoots of `n o e s` 12–13 units everywhere, ascenders/caps/descenders fixed (one sub-unit exception: the wght-100 `b` stem top, which sits 6 units under the ascender), no contour direction or count changes, OTS sanitizer passes on all 36 files.
 
@@ -332,7 +332,7 @@ Or use the variable font directly — one file covers all weights.
 body {
   font-family: 'R Sans', system-ui, -apple-system, sans-serif;
   font-optical-sizing: auto;
-  font-weight: 425;  /* v2: matches Google Sans Text's paragraph colour */
+  font-weight: 450;  /* v2, light mode with near-ink text; use 425 in dark mode */
 }
 ```
 
@@ -412,7 +412,7 @@ After building or modifying R Sans:
 | Static instance opsz | 14 |
 | Terminal softening | 12 glyphs (a, c, e, f, g, j, n, r, s, t, u, y) |
 | v2 retune | x-height ×1.048, round sidebearings −12%, open c/e/s apertures |
-| Recommended web weight | 425 for body text (matches Google Sans Text colour) |
+| Recommended web weight | 450 in light mode (with ~`oklch(0.20)` ink), 425 in dark mode |
 | Disambiguation | Serifed I, tailed l, dotted zero (static only) |
 | Glyph count | ~486 |
 | Language support | Latin extended |
