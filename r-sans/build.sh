@@ -44,6 +44,12 @@
 #    Clean RIBBI grouping, correct fsSelection/macStyle bits, unique
 #    PostScript names. Every weight shows correctly in Font Book.
 #
+# 5. v2 PROPORTION RETUNE
+#    Taller lowercase (x-height ×1.048, ascenders fixed), tighter round
+#    sidebearings, and c/e/s terminals that open away from the counter.
+#    Done per master on the variable fonts (gvar, composites, GPOS
+#    anchors, MVAR), so every weight and optical size stays consistent.
+#
 # ─── Build Instructions ──────────────────────────────────────────────
 #
 #   Requirements: python3, curl
@@ -64,7 +70,11 @@ OPSZ=14.0              # Optical size for static instances (DM Sans range: 9–4
                        # 14 = body text sweet spot, double-storey a/g retained
 DMSANS_REPO="https://raw.githubusercontent.com/google/fonts/main/ofl/dmsans"
 
-# ── Terminal softening ──────────────────────────────────────────────
+# ── v2: proportion and rhythm retune ────────────────────────────────
+# Measured against Google Sans Text at wght 400 / opsz 17 (see DESIGN.md).
+XHEIGHT_K=0.048        # lowercase x-height gain (501 → 525 at opsz 17)
+ROUND_SB_TIGHTEN=0.12  # share of round-side sidebearing removed (o c e d q b p a g)
+SPACING_REF_OPSZ=17    # body-text optical size the spacing is sized at
 TERMINAL_TUCK=8        # c e s: outer terminal corner tucks in (v1: 13–16)
 APERTURE_LIFT=9        # c e s: terminal cut moves away from the counter
 
@@ -85,7 +95,7 @@ echo "==> Setting up build environment..."
 mkdir -p "$BUILD_DIR/output"
 python3 -m venv "$BUILD_DIR/venv"
 source "$BUILD_DIR/venv/bin/activate"
-pip install -q fonttools brotli opentype-feature-freezer
+pip install -q fonttools brotli numpy opentype-feature-freezer
 
 echo "==> Downloading DM Sans..."
 curl -sL -o "$BUILD_DIR/DMSans.ttf" \
@@ -475,6 +485,426 @@ for var_file in ['RSans-Variable.ttf', 'RSans-Italic-Variable.ttf']:
 
 print("  Terminal softening complete.")
 SURGERY
+
+# ── Step 2b: v2 proportion and rhythm retune ─────────────────────────
+
+echo "==> Retuning proportions (x-height +${XHEIGHT_K}, round sides -${ROUND_SB_TIGHTEN})..."
+python3 - "$BUILD_DIR" "$XHEIGHT_K" "$ROUND_SB_TIGHTEN" "$SPACING_REF_OPSZ" << 'RETUNE'
+import os
+import sys
+import math
+import unicodedata
+import numpy as np
+from fontTools.ttLib import TTFont
+from fontTools.ttLib.tables import otTables as ot
+from fontTools.ttLib.tables.TupleVariation import TupleVariation
+from fontTools.varLib.models import VariationModel, supportScalar, normalizeLocation
+from fontTools.varLib.varStore import VarStoreInstancer
+from fontTools.varLib.builder import buildVarData, buildVarRegion
+from fontTools.varLib.instancer import instantiateVariableFont
+from fontTools.pens.boundsPen import BoundsPen
+from fontTools.pens.transformPen import TransformPen
+
+# ── v2: proportion and rhythm retune ────────────────────────────────
+# G1  Taller x-height. Every lowercase outline goes through a vertical
+#     piecewise-linear remap: below the overshoot band (OV = 1.03 × x-height)
+#     y scales by 1 + K; between OV and the ascender it compresses so the
+#     ascender (and anything above it) stays put; the baseline and
+#     descenders never move. The remap is applied per master with that
+#     master's own x-height and ascender (DM Sans's x-height shrinks with
+#     opsz, and its ascender drops to 700 at opsz 40), and the deltas are
+#     re-solved over the same master grid, so every master is exact.
+# G3  Tighter round sides. o c e d q b p a g lose a constant share of their
+#     round-side sidebearing (sized at the body-text instance).
+
+BUILD = sys.argv[1]
+K = float(sys.argv[2])                # XHEIGHT_K
+T = float(sys.argv[3])                # ROUND_SB_TIGHTEN
+REF_OPSZ = float(sys.argv[4])         # where G3 sidebearings are sized
+OV_BAND = 1.03
+TITTLES = {'i', 'j', 'fi', 'i.loclTRK'}
+ROUNDS = {'o': 'LR', 'c': 'L', 'e': 'L', 'd': 'L', 'q': 'L', 'b': 'R', 'p': 'R',
+          'a': 'L', 'g': 'L', 'a.ss02': 'L', 'g.ss03': 'L'}
+VCARON = 'uni030C.alt'                 # ď ľ ť apostrophe-caron: rides the stem top
+
+
+def remap_fn(xh, asc, k=K):
+    ov = xh * OV_BAND
+    new = ov * (1 + k)
+    def f(y):
+        if y <= 0:
+            return y
+        if y <= ov:
+            return y * (1 + k)
+        if y <= asc:
+            return new + (y - ov) * (asc - new) / (asc - ov)
+        return y                       # ascender overshoot stays put
+    return f
+
+
+def lowercase_set(font):
+    """Simple (contour) glyphs that carry the lowercase x-height."""
+    glyf = font['glyf']
+    cmap = font.getBestCmap()
+    names = set()
+    for u, g in cmap.items():
+        if unicodedata.category(chr(u)) == 'Ll':
+            names.add(g)
+    names |= {'dotlessi', 'uni0237', 'i.loclTRK', 'fi'}
+    # Stylistic alternates of lowercase letters (a.ss02, g.ss03, y.ss05, ...)
+    for g in font.getGlyphOrder():
+        if '.' in g and g.split('.')[0] in names:
+            names.add(g)
+    return {g for g in names if g in glyf}
+
+
+class Masters:
+    """The master grid of a fontmake-built variable font."""
+
+    def __init__(self, font):
+        self.font = font
+        self.axes = [a.axisTag for a in font['fvar'].axes]
+        peaks = set()
+        for tvs in font['gvar'].variations.values():
+            for tv in tvs:
+                peaks.add(tuple(sorted((a, v[1]) for a, v in tv.axes.items())))
+        locs = [{}] + [dict(p) for p in sorted(peaks)]
+        self.locs = locs
+        self.model = VariationModel(locs, axisOrder=self.axes)
+        supports = [tuple(sorted(s.items())) for s in self.model.supports]
+        for tvs in font['gvar'].variations.values():
+            for tv in tvs:
+                key = tuple(sorted(tv.axes.items()))
+                assert key in supports, f'tuple {key} is not on the master grid'
+
+    def glyph_masters(self, name):
+        """Absolute coordinates (incl. phantom points) at every master."""
+        glyf = self.font['glyf']
+        hm = self.font['hmtx'].metrics
+        base, _ = glyf._getCoordinatesAndControls(name, hm)
+        base = np.array(base, dtype=float)
+        g = glyf[name]
+        tvs = self.font['gvar'].variations.get(name, [])
+        deltas = []
+        for tv in tvs:
+            tv = TupleVariation(tv.axes, list(tv.coordinates))
+            if None in tv.coordinates:
+                orig, _ = glyf._getCoordinatesAndControls(name, hm)
+                ends = list(g.endPtsOfContours) if not g.isComposite() else []
+                if g.isComposite():
+                    tv.coordinates = [c if c is not None else (0, 0) for c in tv.coordinates]
+                else:
+                    tv.calcInferredDeltas(orig, ends)
+            deltas.append((tv.axes, np.array(tv.coordinates, dtype=float)))
+        out = []
+        for loc in self.locs:
+            v = base.copy()
+            for axes, d in deltas:
+                s = supportScalar(loc, axes)
+                if s:
+                    v += s * d
+            out.append(v)
+        return out
+
+    def set_glyph_masters(self, name, masters, tolerance=0.5):
+        glyf = self.font['glyf']
+        hm = self.font['hmtx'].metrics
+        masters = [np.round(m) for m in masters]
+        deltas = self.model.getDeltas(masters)
+        default = deltas[0]
+        glyf._setCoordinates(name, [tuple(map(int, p)) for p in default], hm)
+        g = glyf[name]
+        new_coords, _ = glyf._getCoordinatesAndControls(name, hm)
+        tvs = []
+        for support, d in zip(self.model.supports[1:], deltas[1:]):
+            d = np.round(d).astype(int)
+            if not d.any():
+                continue
+            tv = TupleVariation(dict(support), [tuple(map(int, p)) for p in d])
+            if not g.isComposite():
+                tv.optimize(new_coords, list(g.endPtsOfContours), tolerance=tolerance)
+            tvs.append(tv)
+        if tvs:
+            self.font['gvar'].variations[name] = tvs
+        else:
+            self.font['gvar'].variations.pop(name, None)
+
+
+def metric_at_masters(M, name, fn):
+    return [fn(m) for m in M.glyph_masters(name)]
+
+
+def contours_of(g):
+    s = 0
+    for e in g.endPtsOfContours:
+        yield s, e + 1
+        s = e + 1
+
+
+def apply_v2(path):
+    font = TTFont(path)
+    glyf = font['glyf']
+    M = Masters(font)
+    slant = math.tan(math.radians(-font['post'].italicAngle))
+    lower = lowercase_set(font)
+    simple_lower = {g for g in lower if not glyf[g].isComposite()}
+
+    # Per-master metrics, measured on the untouched outlines.
+    xh = metric_at_masters(M, 'x', lambda m: m[:-4, 1].max())
+    asc = metric_at_masters(M, 'h', lambda m: m[:-4, 1].max())
+    fns = [remap_fn(x, a) for x, a in zip(xh, asc)]
+    rise = [x * K for x in xh]                    # x-height gain per master
+    ov_default = xh[0] * OV_BAND
+    print(f"    x-height per master: {sorted(set(round(x) for x in xh))} → ×{1 + K:.3f}")
+
+    # Stem tops for the ď ľ ť caron, measured before the remap.
+    base_ymax = {g: metric_at_masters(M, g, lambda m: m[:-4, 1].max())
+                 for g in simple_lower if glyf[g].numberOfContours > 0}
+
+    # ── G1a: lowercase outlines ─────────────────────────────────────
+    for name in sorted(simple_lower):
+        g = glyf[name]
+        if g.numberOfContours <= 0:
+            continue
+        masters = M.glyph_masters(name)
+        n = len(masters[0]) - 4
+        base = masters[0]
+        spans = list(contours_of(g))
+        floating = [base[s:e, 1].min() > ov_default for s, e in spans]
+        new = []
+        for mi, m in enumerate(masters):
+            m = m.copy()
+            f = fns[mi]
+            for (s, e), fl in zip(spans, floating):
+                if fl:
+                    # Tittles move with the x-height (like accents); other
+                    # floating strokes (đ ħ bars, ð) ride the compression.
+                    if name in TITTLES:
+                        dy = rise[mi]
+                    else:
+                        cy = (m[s:e, 1].min() + m[s:e, 1].max()) / 2
+                        dy = f(cy) - cy
+                    m[s:e, 1] += dy
+                    m[s:e, 0] += dy * slant
+                else:
+                    for i in range(s, e):
+                        y = m[i, 1]
+                        ny = f(y)
+                        m[i, 0] += (ny - y) * slant
+                        m[i, 1] = ny
+            new.append(m)
+        M.set_glyph_masters(name, new)
+
+    # ── G1b: mark anchors on lowercase bases ────────────────────────
+    gdef = font['GDEF'].table
+    store = gdef.VarStore
+    fvar_axes = font['fvar'].axes
+    inst = [VarStoreInstancer(store, fvar_axes, loc) for loc in M.locs]
+    regions = store.VarRegionList.Region
+    axis_tags = M.axes
+
+    def region_index(support):
+        want = [support.get(t, (0, 0, 0)) for t in axis_tags]
+        for ri, r in enumerate(regions):
+            got = [(a.StartCoord, a.PeakCoord, a.EndCoord) for a in r.VarRegionAxis]
+            if all(abs(a - b) < 1e-4 for p, q in zip(got, want) for a, b in zip(p, q)):
+                return ri
+        regions.append(buildVarRegion(support, axis_tags))
+        store.VarRegionList.RegionCount = len(regions)
+        return len(regions) - 1
+
+    new_rows = []                     # (deltas per support)
+
+    def dev_values(dev):
+        if dev is None or dev.DeltaFormat != 0x8000:
+            return [0.0] * len(M.locs)
+        idx = (dev.StartSize << 16) + dev.EndSize
+        return [i[idx] for i in inst]
+
+    def make_dev(values):
+        deltas = M.model.getDeltas([float(v) for v in values])
+        default = int(round(deltas[0]))
+        row = [int(round(d)) for d in deltas[1:]]
+        if not any(row):
+            return default, None
+        new_rows.append(row)
+        dev = ot.Device()
+        dev.DeltaFormat = 0x8000
+        dev.StartSize = -1            # patched once the VarData exists
+        dev.EndSize = len(new_rows) - 1
+        return default, dev
+
+    def anchor_masters(a):
+        ys = [a.YCoordinate + d for d in dev_values(getattr(a, 'YDeviceTable', None))]
+        xs = [a.XCoordinate + d for d in dev_values(getattr(a, 'XDeviceTable', None))]
+        return xs, ys
+
+    def set_anchor(a, xs, ys):
+        a.Format = 3
+        a.XCoordinate, a.XDeviceTable = make_dev(xs)
+        a.YCoordinate, a.YDeviceTable = make_dev(ys)
+
+    base_anchor_y = {}                # (glyph, class) -> per-master y (pre-shift)
+    mark_class = {}
+    gpos = font['GPOS'].table
+    m2b = []
+    for lk in gpos.LookupList.Lookup:
+        for st in lk.SubTable:
+            if lk.LookupType == 9:
+                st = st.ExtSubTable
+            if getattr(st, 'LookupType', lk.LookupType) == 4:
+                m2b.append(st)
+    for st in m2b:
+        for mi, mg in enumerate(st.MarkCoverage.glyphs):
+            mark_class[mg] = st.MarkArray.MarkRecord[mi].Class
+    vcaron_class = mark_class.get(VCARON)
+
+    def anchor_shift(base, cls, ys, mi):
+        if cls == vcaron_class and base in base_ymax:
+            # ignore the anchor height: follow the stem top (d l stay, t rises)
+            top = base_ymax[base][mi]
+            return fns[mi](top) - top
+        return fns[mi](ys[mi]) - ys[mi]
+
+    for st in m2b:
+        for bi, bg in enumerate(st.BaseCoverage.glyphs):
+            if bg not in simple_lower:
+                continue
+            rec = st.BaseArray.BaseRecord[bi]
+            for cls, a in enumerate(rec.BaseAnchor):
+                if a is None:
+                    continue
+                xs, ys = anchor_masters(a)
+                base_anchor_y[(bg, cls)] = ys
+                sh = [anchor_shift(bg, cls, ys, mi) for mi in range(len(M.locs))]
+                set_anchor(a, [x + s * slant for x, s in zip(xs, sh)],
+                           [y + s for y, s in zip(ys, sh)])
+
+    # ── G1c: composites built on lowercase bases ────────────────────
+    moved = 0
+    for name in font.getGlyphOrder():
+        g = glyf[name]
+        if not g.isComposite():
+            continue
+        comps = g.components
+        if comps[0].glyphName not in lower:
+            continue
+        base = comps[0].glyphName
+        masters = M.glyph_masters(name)
+        new = [m.copy() for m in masters]
+        changed = False
+        for ci, c in enumerate(comps[1:], start=1):
+            if c.glyphName in lower:
+                continue
+            cls = mark_class.get(c.glyphName)
+            for mi in range(len(M.locs)):
+                if cls is not None and (base, cls) in base_anchor_y:
+                    s = anchor_shift(base, cls, base_anchor_y[(base, cls)], mi)
+                else:
+                    # unanchored component (e.g. ŀ's middle dot): its centre
+                    # follows the remap
+                    cm = M.glyph_masters(c.glyphName)[mi][:-4, 1]
+                    cy = (cm.min() + cm.max()) / 2 + masters[mi][ci, 1]
+                    s = fns[mi](cy) - cy
+                new[mi][ci, 1] += s
+                new[mi][ci, 0] += s * slant
+                changed = changed or abs(s) > 0.5
+        if changed:
+            M.set_glyph_masters(name, new)
+            moved += 1
+    print(f"    remapped {len(simple_lower)} lowercase outlines, {moved} composites")
+
+    # ── G1d: x-height metric (OS/2.sxHeight + MVAR xhgt) ────────────
+    font['OS/2'].sxHeight = int(round(font['OS/2'].sxHeight * (1 + K)))
+    if 'MVAR' in font:
+        mvar = font['MVAR'].table
+        for rec in mvar.ValueRecord:
+            if rec.ValueTag == 'xhgt':
+                outer, inner = rec.VarIdx >> 16, rec.VarIdx & 0xFFFF
+                vd = mvar.VarStore.VarData[outer]
+                vd.Item[inner] = [int(round(d * (1 + K))) for d in vd.Item[inner]]
+
+    # ── G3: tighter round sidebearings ──────────────────────────────
+    ref = instantiateVariableFont(TTFont(path), {'opsz': REF_OPSZ, 'wght': 400})
+    # (sidebearings are unaffected by the vertical remap, so the saved file works)
+    rgs = ref.getGlyphSet()
+    _bp = BoundsPen(rgs); rgs['x'].draw(_bp); ref_xh = _bp.bounds[3]
+    hmtx = font['hmtx']
+    shift_x = {}
+    for name, sides in ROUNDS.items():
+        if name not in glyf:
+            continue
+        # measured on the de-slanted outline, so italic sidebearings are
+        # read along the slant rather than off the descender tail
+        bp = BoundsPen(rgs)
+        rgs[name].draw(TransformPen(bp, (1, 0, -slant, 1, slant * ref_xh / 2, 0)))
+        adv = ref['hmtx'][name][0]
+        lsb, rsb = bp.bounds[0], adv - bp.bounds[2]
+        dl = max(0, int(round(lsb * T))) if 'L' in sides else 0
+        dr = max(0, int(round(rsb * T))) if 'R' in sides else 0
+        shift_x[name] = (dl, dr)
+    order = font.getGlyphOrder()
+    simple_first = ([n for n in order if not glyf[n].isComposite()] +
+                    [n for n in order if glyf[n].isComposite()])
+    for name in simple_first:
+        g = glyf[name]
+        if name in shift_x:
+            dl, dr = shift_x[name]
+        elif g.isComposite() and g.components[0].glyphName in shift_x:
+            dl, dr = shift_x[g.components[0].glyphName]
+            shift_x[name] = (dl, dr)
+        else:
+            continue
+        if g.isComposite():
+            # the base component already moved with its own outline
+            for c in g.components[1:]:
+                c.x -= dl
+        else:
+            g.coordinates.translate((-dl, 0))
+        g.recalcBounds(glyf)
+        adv, _ = hmtx[name]
+        hmtx[name] = (adv - dl - dr, g.xMin)
+    for st in m2b:
+        for bi, bg in enumerate(st.BaseCoverage.glyphs):
+            if bg in shift_x:
+                for a in st.BaseArray.BaseRecord[bi].BaseAnchor:
+                    if a is not None:
+                        a.XCoordinate -= shift_x[bg][0]
+    print(f"    tightened round sides of {len(shift_x)} glyphs: " +
+          ', '.join(f"{n} -{l}/-{r}" for n, (l, r) in shift_x.items() if '.' not in n and len(n) == 1))
+
+    # ── Commit the new anchor variations into the GDEF VarStore ─────
+    if new_rows:
+        region_idx = [region_index(s) for s in M.model.supports[1:]]
+        vd = buildVarData(region_idx, new_rows, optimize=False)
+        store.VarData.append(vd)
+        store.VarDataCount = len(store.VarData)
+        outer = len(store.VarData) - 1
+        for st in m2b:
+            for rec in st.BaseArray.BaseRecord:
+                for a in rec.BaseAnchor:
+                    for dev in (getattr(a, 'XDeviceTable', None), getattr(a, 'YDeviceTable', None)):
+                        if dev is not None and dev.StartSize == -1:
+                            dev.StartSize = outer
+        used = set()
+        gdef.collect_device_varidxes(used)
+        gpos.collect_device_varidxes(used)
+        mapping = store.subset_varidxes(used)
+        gdef.remap_device_varidxes(mapping)
+        gpos.remap_device_varidxes(mapping)
+        mapping = store.optimize()
+        gdef.remap_device_varidxes(mapping)
+        gpos.remap_device_varidxes(mapping)
+
+    font.save(path)
+
+
+for var_file in ['RSans-Variable.ttf', 'RSans-Italic-Variable.ttf']:
+    print(f"  {var_file}:")
+    apply_v2(os.path.join(BUILD, 'output', var_file))
+
+print("  Proportion retune complete.")
+RETUNE
 
 # ── Step 3: Tune metrics ─────────────────────────────────────────────
 
@@ -876,6 +1306,7 @@ echo "Design choices:"
 echo "  Base:         DM Sans (by Colophon Foundry)"
 echo "  Features:     ${FEATURES} (frozen into default glyphs)"
 echo "  Surgery:      Terminal softening on 12 glyphs (c/e/s apertures opened)"
+echo "  Retune (v2):  x-height x$(python3 -c "print(1 + $XHEIGHT_K)"), round sidebearings -${ROUND_SB_TIGHTEN}"
 echo "  Disambig:     Serifed I, tailed l, dotted zero (static instances)"
 echo "  Line height:  ~1.30x (DM Sans native, body text optimized)"
 echo "  Optical size: ${OPSZ} (pinned for body text sweet spot)"
