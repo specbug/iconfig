@@ -507,7 +507,7 @@
     <div class="section-label">Warmth Test — R Sans vs Stock DM Sans</div>
     <div class="ab-section">
       <div class="ab-panel">
-        <h4>R Sans (softened terminals)</h4>
+        <h4>R Sans (v2: taller x-height, open soft terminals)</h4>
         <div class="ab-chars" style="font-family: 'R Sans', sans-serif;">a c e f g r s t</div>
         <p style="font-family: 'R Sans', sans-serif;">Typography is the craft of endowing human language with a durable visual form. When done well, the reader forgets about the type entirely and is absorbed in the content. Figures: 0123456789.</p>
       </div>
@@ -645,6 +645,7 @@
     <div class="list-demo specimen">
       <h4 style="margin-bottom: 12px;">What makes R Sans different from stock DM Sans:</h4>
       <ul>
+        <li><strong>Proportion retune (v2)</strong> — x-height 0.501 → 0.525 UPM, tighter round sides, re-opened <em>c e s</em> apertures</li>
         <li><strong>Terminal softening</strong> — 12 key glyphs have warmer, rounded stroke endings</li>
         <li><strong>Disambiguation</strong> — Serifed <em>I</em>, tailed <em>l</em>, dotted <em>0</em> (static instances)</li>
         <li><strong>Proper metadata</strong> — Clean RIBBI grouping, correct fsSelection/macStyle per weight</li>
@@ -676,8 +677,8 @@
       <p>At text sizes (<span class="inline-code">opsz=9-20</span>), DM Sans uses double-storey <em>a</em> and <em>g</em> — better for body text readability. At display sizes (<span class="inline-code">opsz=20-40</span>), it switches to the more geometric single-storey forms.</p>
 
       <h3>Terminal Softening</h3>
-      <p>The core creative transformation is <strong>terminal softening</strong>. DM Sans has clean, precise flat-cut terminals — beautiful for a geometric font, but slightly clinical for sustained reading. R Sans pulls terminal tips inward by 5-18 units (on a 1000 UPM grid) across 12 key glyphs.</p>
-      <p>The effect is subtle on any individual letter but cumulative across a paragraph. Compare the <em>c</em>, <em>e</em>, and <em>s</em> in the A/B comparison above — the rounder terminals give R Sans a gentle warmth that stock DM Sans lacks.</p>
+      <p>The core creative transformation is <strong>terminal softening</strong>. DM Sans has clean, precise flat-cut terminals — beautiful for a geometric font, but slightly clinical for sustained reading. R Sans tapers and rounds the terminals of 12 key glyphs by 5-18 units (on a 1000 UPM grid). Since v2 the cuts of <em>c</em>, <em>e</em> and <em>s</em> also move away from the counter, so softening no longer closes the apertures.</p>
+      <p>The effect is subtle on any individual letter but cumulative across a paragraph. Compare the <em>c</em>, <em>e</em>, and <em>s</em> in the A/B comparison above — the tapered terminals give R Sans a gentle warmth that stock DM Sans lacks, and the taller x-height lets it read at Google Sans Text's size.</p>
       <div class="code-block">cd r-sans && ./build.sh              # full build
 ./build.sh --inspect    # dump glyph coordinates</div>
       <p>The build produces 16 static instances (8 weights x upright + italic) plus variable fonts for web use. Total web payload: <strong>~89 KB</strong> for the variable WOFF2, or ~22 KB per static WOFF2.</p>
