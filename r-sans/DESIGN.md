@@ -48,15 +48,15 @@ The tradeoff is worth it: DM Sans gets us 80% to the target aesthetic without su
 
 ### Terminal Softening — The Core Transformation
 
-DM Sans has clean, geometric terminals with flat horizontal cuts at stroke endings. R Sans softens 12 key glyphs by pulling terminal tips inward and rounding junctions, creating the warm, slightly organic feel of Styrene B while preserving DM Sans's geometric clarity.
+DM Sans has clean, geometric terminals with flat horizontal cuts at stroke endings. R Sans softens 12 key glyphs by tapering terminal tips and rounding junctions, creating the warm, slightly organic feel of Styrene B while preserving DM Sans's geometric clarity. Since v2, the `c`/`e`/`s` cuts also move away from the counter, so the softening opens the apertures instead of closing them.
 
 All adjustments are 5–18 units on a 1000 UPM grid — subtle individually, but cumulative across all glyphs.
 
 | Glyph | Surgery | Effect |
 |-------|---------|--------|
-| **c** | Soften top + bottom terminal bars | Rounder stroke endings |
-| **e** | Soften bottom-right terminal bar | More open, welcoming aperture |
-| **s** | Soften upper + lower terminal bars | Less mechanical, warmer curves |
+| **c** | Taper top + bottom terminals, lift cuts away from the counter | Softer endings, open aperture |
+| **e** | Taper bottom-right terminal, drop it away from the counter | More open, welcoming aperture |
+| **s** | Taper upper + lower terminals, open both apertures | Less mechanical, warmer curves |
 | **t** | Soften bottom hook | Gentler terminal, less angular |
 | **f** | Round top hook cap corners | Softer, less boxy hook |
 | **a** | Soften stem-bowl junction | Smoother connection point |
@@ -69,7 +69,9 @@ All adjustments are 5–18 units on a 1000 UPM grid — subtle individually, but
 
 **Technical implementation**: fontTools `glyf` table coordinate manipulation on the variable font default master. gvar deltas (weight/opsz variations) are preserved automatically since we only modify existing point coordinates, never add/remove points.
 
-For the italic variable font, glyphs with different topology (a, c, e, s) use adaptive position-based surgery or are skipped. Glyphs with matching topology (f, g, j, n, r, t, u, y) receive identical treatment.
+For the italic variable font, `c` and `e` share the upright topology shifted by one and two points, and `s` shares it exactly, so all three get the same explicit, verified edits; the italic `a` differs and is skipped. Glyphs with matching topology (f, g, j, n, r, t, u, y) receive identical treatment.
+
+Note: `ss04` is frozen, so the visible `u` is `u.ss04`; `surgery_u` edits the unused `u` glyph and has no visible effect.
 
 ### Disambiguation — I/l/1 and 0/O
 
@@ -137,6 +139,58 @@ Each static instance gets proper RIBBI grouping:
 
 ---
 
+## v2: Proportion and Rhythm Retune
+
+v1 R Sans read well but a little older and wider than the faces it sits beside on sixeleven. Measured against Google Sans Text (the OFL Google Sans at `opsz=17, GRAD=0`) at wght 400 / opsz 17, the causes were concrete:
+
+1. **Short x-height, wide letters.** Lowercase was ~5% shorter relative to the em and ~7% wider relative to its own x-height.
+2. **Loose rounds.** Space around `o c e d b p q` was ~20% looser than the references, leaving holes in the rhythm.
+3. **More contrast.** Thin horizontals (0.84) read slightly spindly.
+4. **Softening closed the apertures.** v1 pulled the `c`/`e`/`s` terminal tips *toward the counter*, so `c` and `e` ended up more closed than stock DM Sans.
+
+v2 fixes these as proportions and rhythm, never shapes: no outline is borrowed from a reference.
+
+### What changed
+
+| Step | Change | Implementation |
+|------|--------|----------------|
+| **G1** x-height | Lowercase ×1.048 (`XHEIGHT_K`) | Piecewise-linear vertical remap: y≤0 fixed; 0…1.03×x-height scales; above that compresses so ascenders stay put; ascender overshoots (ß) untouched |
+| **G2** proportions | width/x-height 0.951 → 0.902 | Falls out of G1; no horizontal condensing |
+| **G3** spacing | Round side of `o c e d q b p a g` (+ `a.ss02`, `g.ss03`, accented forms) −12% (`ROUND_SB_TIGHTEN`) | Constant unit change sized at opsz 17 (≈6 units); outline, hmtx, mark offsets and anchors shift together; HVAR untouched |
+| **G4** contrast | 0.84 → 0.88 | Falls out of G1 (horizontals stretch, stems don't) |
+| **G5** apertures | `c e s` cut moves away from the counter | `open_terminal()`: outer corner still tucks in (`TERMINAL_TUCK=8`) so the end tapers soft; the cut lifts away from the counter (`APERTURE_LIFT=9`, `c` takes 40% per end since it opens at both) |
+| **G7** italic | Same transforms | Explicit point indices for italic `c`/`e` (v1's adaptive rule also moved the `e` crossbar end) |
+
+**Doing it right on a variable font.** The remap runs per master: each of the 12 masters (opsz 9/24/40 × wght 100/300/400/1000) is evaluated in absolute coordinates (IUP-expanded), remapped with *that master's own* x-height and ascender, and the deltas are re-solved with `VariationModel` and re-IUP-optimised (tolerance 0.5). This matters because DM Sans's x-height shrinks with optical size (526 → 496) and its ascender drops to 700 at opsz 40. A single default-master remap would lift opsz-40 ascenders.
+
+- **Marks follow anchors.** Each GPOS mark-to-base anchor on a lowercase base moves by `remap(anchor) − anchor` per master, with new GDEF VarStore rows. Accents on x-height letters rise by exactly the x-height gain (the accent gap is unchanged); accents over ascenders stay. Composite mark offsets use the same anchor-derived shift, so precomposed `é` and `e + ◌́` agree everywhere on the grid (≤1.4 units).
+- **ď ľ ť** apostrophe-caron follows its stem top (d, l stay; t's shorter stem rises a little).
+- **Tittles** (i j ﬁ) move with the x-height like accents, keeping their gap; floating strokes in the ascender zone (đ ħ bars, ð) ride the compression.
+- **Italic** is remapped shear-aware (de-slant → remap → re-slant), so stems don't kink at the overshoot band, and italic sidebearings are measured on the de-slanted outline.
+- **Metrics:** `OS/2.sxHeight` and the `MVAR` `xhgt` deltas scale with the x-height. Vertical metrics, line gap and caps are untouched.
+
+### Measured (wght 400, opsz 17)
+
+| metric | v1 | **v2** | Google Sans Text | target |
+|---|---|---|---|---|
+| x-height / UPM | 0.501 | **0.525** | 0.526 | 0.522–0.528 |
+| x-height / cap | 0.716 | **0.750** | 0.735 | 0.74–0.75 |
+| avg advance / x-h | 0.951 | **0.902** | 0.884 | 0.89–0.91 |
+| `n` sidebearing / x-h | 0.129 | **0.123** | 0.133 | ≥ 0.12 |
+| `o` sidebearing / x-h | 0.097 | **0.081** | 0.078 | 0.079–0.085 |
+| contrast | 0.84 | **0.88** | 0.92 | 0.87–0.90 |
+| px to match GST@17px | 18.0 | **17.1** | 17.1 | |
+| `c` aperture | 0.337 | **0.367** | 0.363 | ≥ 0.360 |
+| `e` aperture | 0.149 | **0.179** | 0.188 | 0.172–0.188 |
+| colour @ wght 400 | 0.362 | 0.363 | 0.375 | |
+| colour @ wght 425 | | **0.375** | | 0.372–0.380 |
+
+Colour is a setting, not an outline change: the variable font at **wght 425** matches Google Sans Text's paragraph density while semibold (0.472) and bold (0.513) stay clearly distinct. Italic apertures (de-slanted): `c` 0.322 → 0.349, `e` 0.163 → 0.179.
+
+Verified across wght 100/400/700/1000 × opsz 9/14/17/24/40, upright and italic: x-height exactly ×1.048, overshoots of `n o e s` 12–13 units everywhere, ascenders/caps/descenders fixed (one sub-unit exception: the wght-100 `b` stem top, which sits 6 units under the ascender), no contour direction or count changes, OTS sanitizer passes on all 36 files.
+
+---
+
 ## DM Sans Stylistic Sets
 
 DM Sans includes several stylistic sets that remain available in R Sans (unfrozen):
@@ -159,8 +213,8 @@ DM Sans includes several stylistic sets that remain available in R Sans (unfroze
 ## Build System
 
 ### Requirements
-- Python 3.11+
-- `curl` (for downloading DM Sans)
+- Python 3.11+ (the build installs fonttools, brotli, numpy and opentype-feature-freezer in its own venv)
+- `curl` (for downloading DM Sans from raw.githubusercontent.com)
 - Internet access (downloads from Google Fonts GitHub)
 
 ### Quick Build
@@ -182,7 +236,8 @@ Dumps glyph coordinates for all surgery target characters. Useful for verifying 
 
 1. **Download** — DM Sans variable fonts from Google Fonts GitHub
 2. **Rename** — All name table entries: `DM Sans` → `R Sans`
-3. **Terminal softening** — 12 glyph coordinate adjustments on variable fonts
+3. **Terminal softening** — 12 glyph coordinate adjustments on variable fonts (c/e/s open their apertures)
+3b. **Proportion retune (v2)** — per-master lowercase x-height remap (outlines, gvar, composites, GPOS anchors, MVAR) and tighter round sidebearings
 4. **Metrics** — Align hhea with usWin for cross-platform consistency
 5. **Instance generation** — 8 weights × 2 styles = 16 static TTFs via `fontTools.varLib.instancer`
 6. **Disambiguation** — Serifed I, tailed l, dotted zero on each static instance
@@ -200,10 +255,10 @@ Edit the surgery functions in `build.sh`. Each function documents:
 - The expected coordinates at those points
 - The displacement applied (dx, dy)
 
-Example: to make 'c' terminals softer, increase the displacement:
+Example: to make the `c`/`e`/`s` terminals softer, or less open:
 ```python
-# In surgery_c(): change (11, -16, -7) to (11, -22, -10)
-# This pulls the outer tip further inward
+# In build.sh: TERMINAL_TUCK=8 → 10 tapers the c/e/s ends more;
+# APERTURE_LIFT=9 → 6 keeps the cuts closer to stock DM Sans
 ```
 
 Use `./build.sh --inspect` to dump current coordinates before modifying.
@@ -262,6 +317,7 @@ Or use the variable font directly — one file covers all weights.
 body {
   font-family: 'R Sans', system-ui, -apple-system, sans-serif;
   font-optical-sizing: auto;
+  font-weight: 425;  /* v2: matches Google Sans Text's paragraph colour */
 }
 ```
 
@@ -330,15 +386,18 @@ After building or modifying R Sans:
 |----------|-------|
 | Base font | DM Sans 4.x (variable, from Google Fonts GitHub) |
 | UPM | 1000 |
-| x-height | 526 (0.526 UPM) |
+| x-height | 551 at opsz 9, **525 at opsz 17** (body), 520 at opsz 24–40; `sxHeight` 551 (variable), 528 (statics, opsz 14) |
 | Cap height | 700 (0.700 UPM) |
-| Ascender | 992 (0.992 UPM) |
+| Lowercase ascender | 720 (700 at opsz 40), unchanged by v2 |
+| Typo ascender | 992 (0.992 UPM) |
 | Descender | -310 (-0.310 UPM) |
 | Line gap | 0 |
 | Default line-height | ~1.30x |
 | Variable axes | `wght` (100–1000), `opsz` (9–40) |
 | Static instance opsz | 14 |
 | Terminal softening | 12 glyphs (a, c, e, f, g, j, n, r, s, t, u, y) |
+| v2 retune | x-height ×1.048, round sidebearings −12%, open c/e/s apertures |
+| Recommended web weight | 425 for body text (matches Google Sans Text colour) |
 | Disambiguation | Serifed I, tailed l, dotted zero (static only) |
 | Glyph count | ~486 |
 | Language support | Latin extended |
