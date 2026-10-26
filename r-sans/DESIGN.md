@@ -360,6 +360,31 @@ body {
 
 ---
 
+## CrossPoint (.cpfont) — Xteink X4 Pro
+
+[CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader) can't use the variable fonts directly. Its `.cpfont` files hold pre-rasterized **2-bit (4-level) glyph bitmaps**: one file per point size, all four styles inside, plus class kerning and ligatures. So every rendering decision is baked in at conversion time. `./build-cpfont.sh` feeds R Sans v2 through CrossPoint's own converter (`fontconvert_sdcard.py`, pinned to firmware `0727f9f`) with settings chosen for the X4 Pro: a 4.3" 480×800 panel at ~219 PPI, with touch and frontlight layers that soften the image a little.
+
+| | Setting | Why |
+|---|---|---|
+| Sizes | 12, 14, 16, 18 pt | CrossPoint's Small / Medium / Large / XL steps. R Sans is Latin-only, so the 8/10 pt files used for non-Latin UI fallback aren't needed. |
+| Optical size | 9, 9.6, 11, 12.3 (one per file) | The converter rasterizes at 150 DPI, so a 12 pt file is a 25 px em, about 8.2 pt on a 219 PPI panel. Each file is instanced at the physical size it renders at (pt × 150 / 219, axis minimum 9): the sturdier, more open small-size design. |
+| Weight | Regular/Italic **450**, Bold/Bold Italic **700** | At 450, ink per line on the panel matches Inter as CrossPoint ships it (400 was ~5% lighter, 500 ~8% heavier), and stays within ±2% across all four sizes. Bold above 700 only widened words: stems already saturate to black. |
+| Hinting | FreeType autohinter (`--force-autohint`) | R Sans has no hinting instructions, so the default path is unhinted: x-height, baseline and stems land between pixel rows as grey half-pixels. ttfautohint (vertical only, under FreeType's v40 interpreter) fixes heights but leaves stems grey. The autohinter snaps both, so stems are solid black. Advances still come from the unhinted outlines, so spacing is unchanged. |
+| Coverage | `latin-ext,reading,ipa-chars` | Trimmed by the converter to what R Sans has: 402 glyphs per style, every printable character in the font. |
+| Kerning / ligatures | from GPOS `kern` / GSUB `liga` | 915–1,524 class pairs per style (no style hits the 255-class cap); fi, fl. |
+
+Output: `cpfont/RSans/RSans_{12,14,16,18}.cpfont`, 140–280 KB each, 840 KB in total. Every file passes an independent reader that mirrors `SdCardFont::load()`: magic, version 4, 2-bit flag, style TOC, count limits, interval continuity, glyph bitmap bounds and kerning tables.
+
+**Install:** copy the `cpfont/RSans/` folder to `/fonts/` (or `/.fonts/`) on the SD card, or upload the four files under **File Transfer › Fonts** in the reader's web UI. Then pick **RSans** in **Settings › Reader › Font Family**. Leave **Text Anti-Aliasing** on: with it off, the reader paints every non-white pixel black, so all text (any font) gets heavier.
+
+The disambiguation forms (serifed I, tailed l, dotted zero) live only in the desktop statics. The `.cpfont` files are built from the variable outlines, like the web fonts.
+
+![12 pt hinting comparison, AA on and off](docs/cpfont/hinting.png)
+
+![RSans .cpfont pages, 12–18 pt, rendered from the files at panel pixels](docs/cpfont/pages.png)
+
+---
+
 ## Cross-Family Consistency with R Mono
 
 R Sans and R Mono share a design philosophy:
@@ -420,5 +445,6 @@ After building or modifying R Sans:
 | Styles | Upright + Italic for each weight |
 | Static files | 16 TTF + 16 WOFF2 |
 | Variable files | 2 TTF + 2 WOFF2 (upright + italic) |
+| CrossPoint files | 4 `.cpfont` (12–18 pt, 4 styles each) for the Xteink X4 Pro |
 | Build tool | fonttools (coordinate surgery + instancer + WOFF2) |
 | License | SIL Open Font License 1.1 (inherited from DM Sans) |
