@@ -5,40 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>R Sans specimen</title>
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900&family=Google+Sans+Flex:opsz,slnt,wdth,wght,GRAD,ROND@6..144,-10..0,25..151,1..1000,0..100,0..100&display=swap">
 <style>
 @font-face { font-family: 'R Sans'; src: url('r-sans/web-fonts/RSans-Variable.woff2') format('woff2'); font-weight: 100 1000; font-style: normal; }
 @font-face { font-family: 'R Sans'; src: url('r-sans/web-fonts/RSans-Italic-Variable.woff2') format('woff2'); font-weight: 100 1000; font-style: italic; }
 @font-face { font-family: 'R Mono'; src: url('r-mono/web-fonts/RMono-Regular.woff2') format('woff2'); font-weight: 400; }
 
 :root {
-  --ground: oklch(0.972 0.002 250);
-  --sheet:  oklch(0.995 0.001 250);
-  --ink:    oklch(0.19 0.004 250);
-  --ink-2:  oklch(0.47 0.004 250);
-  --ink-3:  oklch(0.60 0.004 250);
-  --rule:   oklch(0.87 0.003 250);
-  --grid:   oklch(0.915 0.003 250);
-  --link:   oklch(0.50 0.16 255);
-  --you:    oklch(0.60 0.20 30);
+  --ground: oklch(0.983 0.003 95);
+  --sheet:  oklch(0.995 0.002 95);
+  --ink:    oklch(0.17 0.004 60);
+  --ink-2:  oklch(0.45 0.005 60);
+  --ink-3:  oklch(0.60 0.005 60);
+  --rule:   oklch(0.87 0.004 80);
+  --grid:   oklch(0.925 0.003 80);
+  --cinnabar:    oklch(0.56 0.20 30);
+  --ochre:       oklch(0.68 0.14 70);
+  --ultramarine: oklch(0.48 0.17 262);
   --body-weight: 450;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --ground: oklch(0.175 0.004 250); --sheet: oklch(0.205 0.004 250);
-    --ink: oklch(0.925 0.003 250); --ink-2: oklch(0.70 0.004 250); --ink-3: oklch(0.55 0.004 250);
-    --rule: oklch(0.30 0.004 250); --grid: oklch(0.26 0.004 250);
-    --link: oklch(0.74 0.12 250); --you: oklch(0.70 0.17 30);
+    --ground: oklch(0.18 0.004 60); --sheet: oklch(0.21 0.004 60);
+    --ink: oklch(0.92 0.004 85); --ink-2: oklch(0.70 0.004 70); --ink-3: oklch(0.55 0.004 70);
+    --rule: oklch(0.30 0.004 60); --grid: oklch(0.25 0.004 60);
+    --cinnabar: oklch(0.68 0.17 32); --ochre: oklch(0.78 0.13 75); --ultramarine: oklch(0.70 0.13 262);
     --body-weight: 425; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --ground: oklch(0.175 0.004 250); --sheet: oklch(0.205 0.004 250);
-  --ink: oklch(0.925 0.003 250); --ink-2: oklch(0.70 0.004 250); --ink-3: oklch(0.55 0.004 250);
-  --rule: oklch(0.30 0.004 250); --grid: oklch(0.26 0.004 250);
-  --link: oklch(0.74 0.12 250); --you: oklch(0.70 0.17 30);
-  --body-weight: 425; color-scheme: dark;
+    --ground: oklch(0.18 0.004 60); --sheet: oklch(0.21 0.004 60);
+    --ink: oklch(0.92 0.004 85); --ink-2: oklch(0.70 0.004 70); --ink-3: oklch(0.55 0.004 70);
+    --rule: oklch(0.30 0.004 60); --grid: oklch(0.25 0.004 60);
+    --cinnabar: oklch(0.68 0.17 32); --ochre: oklch(0.78 0.13 75); --ultramarine: oklch(0.70 0.13 262);
+    --body-weight: 425; color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -55,10 +56,11 @@ body {
   line-height: 1.62;
   -webkit-font-smoothing: antialiased;
 }
-::selection { background: color-mix(in oklch, var(--link) 22%, transparent); }
-a { color: var(--link); text-decoration-line: underline; text-decoration-thickness: 1px; text-underline-offset: 0.22em;
-    text-decoration-color: color-mix(in oklch, var(--link) 45%, transparent); }
-a:hover { text-decoration-color: var(--link); }
+::selection { background: color-mix(in oklch, var(--cinnabar) 14%, transparent); }
+/* Links: ink text over a hand-drawn cinnabar stroke (drawn in the script) */
+a { color: inherit; text-decoration: none; }
+a.pencil { background-repeat: no-repeat; background-position: 0 calc(100% - 0.06em); background-size: 100% 4px;
+           -webkit-box-decoration-break: clone; box-decoration-break: clone; padding-bottom: 0.12em; }
 p { margin: 0; text-wrap: pretty; hanging-punctuation: first; }
 
 /* Grid: hidden instrument margin, text, notes */
@@ -67,24 +69,29 @@ p { margin: 0; text-wrap: pretty; hanging-punctuation: first; }
 .row { grid-column: 3 / 6; display: grid; grid-template-columns: 640px 48px 216px; align-items: start; }
 .row > .txt { grid-column: 1; }
 .row > .note { grid-column: 3; }
-.note, .small { font-size: 13.5px; line-height: 1.48; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.small { font-size: 12.5px; }
+.note { font-size: 13.5px; line-height: 1.48; color: var(--ink-2); }
+/* Google Sans Flex: small text and every number outside the samples */
+.meta, .ghost, .rule a, .controls label, .strip button, .mark {
+  font-family: 'Google Sans Flex', sans-serif; font-stretch: 100%; font-optical-sizing: auto;
+  font-variation-settings: "GRAD" 0, "ROND" 0, "slnt" 0, "wdth" 100;
+  font-feature-settings: normal; font-variant-numeric: tabular-nums; font-weight: 450; }
+.meta { font-size: 12.5px; color: var(--ink-2); }
+/* Note numerals: 0.66em, raised 0.5em, in ochre */
+.mark { font-size: 0.66em; line-height: 0; vertical-align: 0.5em; font-weight: 560; color: var(--ochre); }
 
-header.top { grid-column: 3 / 6; display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 64px; }
-header.top .small { color: var(--ink-3); }
-.ghost { font: inherit; font-size: 12.5px; color: var(--ink-2); background: none; border: 0; padding: 0; cursor: pointer; }
+header.top { grid-column: 3 / 6; display: flex; justify-content: flex-end; align-items: baseline; margin-bottom: 64px; }
+.ghost { font-size: 12.5px; color: var(--ink-2); background: none; border: 0; padding: 0; cursor: pointer; }
 .ghost:hover { color: var(--ink); }
 
-h1.display { font-size: 72px; line-height: 1.02; font-weight: 520; letter-spacing: -0.02em;
-             font-variation-settings: 'opsz' 40; margin: 0; text-wrap: balance; }
+h1.title { font-family: 'Literata', serif; font-size: 72px; line-height: 1.06; font-weight: 470; letter-spacing: -0.012em;
+           font-variation-settings: 'opsz' 72; font-feature-settings: normal; margin: 0; text-wrap: balance; }
 .sub { margin-top: 16px; color: var(--ink-2); }
-h2 { font-size: 21px; line-height: 1.3; font-weight: 620; letter-spacing: -0.012em; margin: 0; }
+h2 { font-family: 'Literata', serif; font-size: 22px; line-height: 1.3; font-weight: 560; font-variation-settings: 'opsz' 24; font-feature-settings: normal; margin: 0; }
 section { grid-column: 3 / 6; display: grid; grid-template-columns: 640px 48px 216px; row-gap: 16px; margin-top: 64px; }
 section > *, section .row { grid-column: 1 / 4; }
 section > h2 { grid-column: 1; }
 
 .display-sample { font-size: 56px; line-height: 1.02; font-weight: 520; letter-spacing: -0.02em; font-variation-settings: 'opsz' 40; text-wrap: balance; }
-.heading-sample { margin-top: 32px; font-size: 21px; line-height: 1.3; font-weight: 620; letter-spacing: -0.012em; }
 .ramp { font-size: 30px; line-height: 1.3; white-space: nowrap; overflow: hidden; }
 .opsz { font-size: 30px; line-height: 1.3; }
 
@@ -111,11 +118,16 @@ table.figs td { padding: 6px 0 6px 24px; text-align: right; border-top: 1px soli
 .test { background: var(--sheet); border: 1px solid var(--rule); padding: 24px; min-height: 160px; outline: none;
         font-size: 30px; line-height: 1.35; }
 .controls { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 24px; margin-top: 16px; }
-.controls label { display: grid; grid-template-columns: 1fr auto; row-gap: 4px; font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.controls input[type=range] { grid-column: 1 / 3; width: 100%; accent-color: var(--ink); }
+.controls label { display: grid; grid-template-columns: 1fr auto; row-gap: 4px; font-size: 12.5px; color: var(--ink-2); }
+.controls input[type=range] { grid-column: 1 / 3; width: 100%; margin: 0; height: 16px; background: none; -webkit-appearance: none; appearance: none; cursor: pointer; }
+.controls input[type=range]::-webkit-slider-runnable-track { height: 1px; background: var(--rule); }
+.controls input[type=range]::-moz-range-track { height: 1px; background: var(--rule); }
+.controls input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 3px; height: 16px; margin-top: -7.5px; background: var(--ink); border: 0; border-radius: 0; }
+.controls input[type=range]::-moz-range-thumb { width: 3px; height: 16px; background: var(--ink); border: 0; border-radius: 0; }
+.controls input[type=range]:focus-visible { outline: 1px solid var(--cinnabar); outline-offset: 2px; }
 .strip { display: flex; border: 1px solid var(--rule); margin-top: 16px; }
-.strip button { flex: 1; font: inherit; font-size: 12.5px; color: var(--ink-2); background: none; border: 0; border-right: 1px solid var(--rule);
-                padding: 8px 0; cursor: pointer; font-variant-numeric: tabular-nums; }
+.strip button { flex: 1; font-size: 12.5px; color: var(--ink-2); background: none; border: 0; border-right: 1px solid var(--rule);
+                padding: 8px 0; cursor: pointer; }
 .strip button:last-child { border-right: 0; }
 .strip button[aria-pressed="true"] { background: var(--ink); color: var(--ground); }
 pre, code { font-family: 'R Mono', monospace; font-size: 14px; line-height: 1.6; font-variant-ligatures: none; }
@@ -126,8 +138,9 @@ pre { margin: 0; padding: 16px 20px; background: var(--sheet); border: 1px solid
 .rule.on, .rule:focus-within { opacity: 1; }
 .rule .spine { position: absolute; right: 0; top: 0; bottom: 0; width: 1px; background: var(--rule); }
 .rule .done { position: absolute; right: 0; top: 0; width: 1px; background: var(--ink); }
-.rule .you { position: absolute; right: -6px; width: 13px; height: 1.5px; background: var(--you); }
-.rule a { position: absolute; right: 16px; transform: translateY(-50%); font-size: 12.5px; line-height: 1; color: var(--ink-2);
+.rule .unit { position: absolute; right: -5px; width: 4px; height: 1px; background: var(--ink-3); }
+.rule .you { position: absolute; right: -6px; width: 13px; height: 1.5px; background: var(--ultramarine); }
+.rule a { position: absolute; right: 16px; transform: translateY(-50%); font-size: 12px; line-height: 1; color: var(--ink-2);
           text-decoration: none; white-space: nowrap; }
 .rule a:hover, .rule a:focus { color: var(--ink); }
 .rule a::after { content: ''; position: absolute; right: -16px; top: 50%; width: 8px; height: 1px; background: var(--ink-3); }
@@ -138,7 +151,7 @@ pre { margin: 0; padding: 16px 20px; background: var(--sheet); border: 1px solid
   header.top, .row, section { grid-column: 1; grid-template-columns: 1fr; }
   .row > .txt, .row > .note, section > *, section > h2 { grid-column: 1; }
   .row > .note { margin-top: 8px !important; }
-  h1.display { font-size: 48px; }
+  h1.title { font-size: 48px; }
   .display-sample { font-size: 40px; }
   .ramp, .opsz { font-size: 24px; }
   #compare .big { font-size: 44px; }
@@ -156,39 +169,34 @@ pre { margin: 0; padding: 16px 20px; background: var(--sheet); border: 1px solid
   <nav class="rule" aria-label="Contents"><div class="spine"></div><div class="done"></div><div class="you"></div></nav>
 
   <header class="top">
-    <span class="small">Specimen · v3</span>
-    <span><button class="ghost" id="theme">Dark</button></span>
+    <button class="ghost" id="theme">Dark</button>
   </header>
 
   <div class="row" id="top">
     <div class="txt">
-      <h1 class="display">R Sans</h1>
-      <p class="sub">A variable sans for running text, headings and display, built from DM Sans.</p>
+      <h1 class="title">R Sans</h1>
+      <p class="sub">A variable sans for running text, built from DM Sans.</p>
     </div>
-    <div class="note" data-align=".display">opsz 9–40 · wght 100–1000<br>668 glyphs · upright and italic<br>SIL Open Font License</div>
+    <div class="note meta" data-align=".title">opsz 9–40 · wght 100–1000<br>v3 · 668 glyphs, upright and italic<br>SIL Open Font License</div>
   </div>
 
   <section id="reading" data-title="Reading">
     <h2>Reading</h2>
     <div class="row">
       <p class="txt">R Sans starts from DM Sans, Colophon Foundry’s geometric family. The build tapers the terminals of twelve lowercase letters, raises the x-height by 4.8% so the lowercase matches Google Sans Text at the same size, and tightens the sidebearings of round letters by 12%.</p>
-      <div class="note">18.5 / 1.62 · weight 450<br>425 in dark mode · ss03</div>
+      <div class="note meta">18.5 / 1.62 · weight 450<br>425 in dark mode · ss03</div>
     </div>
     <div class="row">
-      <p class="txt">Version 3 adds what a page needs from one face: tabular and oldstyle figures, small caps, superiors and inferiors, and thin and hair spaces. Its superiors are drawn at half size from a heavier weight, by a rule fitted to DM Sans’s own superior 4<span class="sup" id="n1">1</span>.</p>
-      <div class="note" data-align="#n1"><span class="sup">1</span> Within 0.3–0.9 units RMS on a 1000-unit em at the regular masters.</div>
+      <p class="txt">Version 3 adds tabular and oldstyle figures, small caps, superiors and inferiors, and thin and hair spaces. Its superiors are drawn at half size from a heavier weight, by a rule fitted to DM Sans’s own superior 4.<span class="mark" id="n1">1</span></p>
+      <div class="note" data-align="#n1"><span class="mark">1</span> Within 0.3–0.9 units RMS on a 1000-unit em at the regular masters.</div>
     </div>
   </section>
 
-  <section id="display" data-title="Display">
-    <h2>Display and headings</h2>
+  <section id="display" data-title="Display sizes">
+    <h2>Display sizes</h2>
     <div class="row">
       <p class="txt display-sample">A pretty city, fifty years away</p>
-      <div class="note" data-align=".display-sample">opsz 40 · weight 520<br>−0.02em · 1.02<br>Sample text</div>
-    </div>
-    <div class="row">
-      <p class="txt heading-sample">A heading set at 21 pixels</p>
-      <div class="note" data-align=".heading-sample">21px · weight 620 · −0.012em</div>
+      <div class="note" data-align=".display-sample"><span class="meta">opsz 40 · weight 520<br>−0.02em · 1.02</span><br>Sample text. No pair touches at this tracking.</div>
     </div>
   </section>
 
@@ -215,23 +223,23 @@ pre { margin: 0; padding: 16px 20px; background: var(--sheet); border: 1px solid
           <tr><td>e aperture</td><td>0.149</td><td>0.179</td><td>0.188</td></tr>
         </tbody>
       </table>
-      <div class="note" data-align="table.figs td">tnum<br>Tabular figures align in columns.</div>
+      <div class="note" data-align="table.figs td"><span class="meta">tnum</span><br>Tabular figures align in columns.</div>
     </div>
     <div class="row">
       <p class="txt">v2 raised the x-height from 501 to 525 units; v3 added 182 glyphs, for 668 in all.</p>
-      <div class="note">Lining figures, the default</div>
+      <div class="note"><span class="meta">lnum</span><br>Lining figures, the default</div>
     </div>
     <div class="row">
       <p class="txt osf">v2 raised the x-height from 501 to 525 units; v3 added 182 glyphs, for 668 in all.</p>
-      <div class="note">onum<br>Oldstyle figures sit with the lowercase.</div>
+      <div class="note"><span class="meta">onum</span><br>Oldstyle figures sit with the lowercase.</div>
     </div>
   </section>
 
   <section id="smallcaps" data-title="Small caps">
     <h2>Small caps</h2>
     <div class="row">
-      <p class="txt">R Sans, like DM Sans, is released under the <span class="sc">OFL</span>, the Open Font License from <span class="sc">SIL</span> International. Accented forms such as <span class="sc">ÉCOLE</span>, <span class="sc">ØRESUND</span> and <span class="sc">ŁÓDŹ</span> are drawn too.</p>
-      <div class="note">smcp · c2sc<br>Stems match the lowercase.</div>
+      <p class="txt">R Sans, like DM Sans, is released under the <span class="sc">OFL</span>, the Open Font License from <span class="sc">SIL</span> International. Accented forms such as <span class="sc">ÉCOLE</span>, <span class="sc">ØRESUND</span>, <span class="sc">ŁÓDŹ</span> and <span class="sc">Gdańsk</span> are drawn too.</p>
+      <div class="note"><span class="meta">smcp · c2sc</span><br>Stems match the lowercase.</div>
     </div>
   </section>
 
@@ -239,7 +247,7 @@ pre { margin: 0; padding: 16px 20px; background: var(--sheet); border: 1px solid
     <h2>Superiors, inferiors and fractions</h2>
     <div class="row">
       <p class="txt">Note markers<span class="sup">12</span>, chemical formulas such as H<span class="sub-pos">2</span>O and CO<span class="sub-pos">2</span>, and fractions such as <span class="frac-n">3</span>⁄<span class="frac-d">4</span> and <span class="frac-n">15</span>⁄<span class="frac-d">16</span>.</p>
-      <div class="note">sups · subs · numr · dnom<br>0–9, and U+2070–2089</div>
+      <div class="note meta">sups · subs · numr · dnom<br>0–9, and U+2070–2089</div>
     </div>
   </section>
 
@@ -247,7 +255,7 @@ pre { margin: 0; padding: 16px 20px; background: var(--sheet); border: 1px solid
     <h2>Characters</h2>
     <div class="row">
       <div class="txt chars" id="chars"></div>
-      <div class="note" id="charcount"></div>
+      <div class="note meta" id="charcount"></div>
     </div>
   </section>
 
@@ -255,11 +263,11 @@ pre { margin: 0; padding: 16px 20px; background: var(--sheet); border: 1px solid
     <h2>Compared with DM Sans</h2>
     <div class="row">
       <p class="txt big">ace gs nou</p>
-      <div class="note" data-align=".big">R Sans</div>
+      <div class="note meta" data-align=".big">R Sans</div>
     </div>
     <div class="row">
       <p class="txt big dm">ace gs nou</p>
-      <div class="note" data-align=".big">DM Sans, same size</div>
+      <div class="note meta" data-align=".big">DM Sans, same size</div>
     </div>
   </section>
 
@@ -269,13 +277,13 @@ pre { margin: 0; padding: 16px 20px; background: var(--sheet); border: 1px solid
       <div class="txt">
         <div class="test" id="sandbox" contenteditable="true" spellcheck="false">Quick zephyrs blow, vexing daft Jim. 1984, 2026 and 3,250.</div>
         <div class="controls">
-          <label>Size <span id="v-size">30 px</span><input type="range" id="size" min="10" max="96" value="30"></label>
+          <label>Size <span id="v-size">30 px</span><input type="range" id="size" min="10" max="96" value="30"></label>
           <label>Weight <span id="v-wght">450</span><input type="range" id="wght" min="100" max="1000" value="450"></label>
           <label>Optical size <span id="v-opsz">auto</span><input type="range" id="opszr" min="8" max="40" value="8"></label>
         </div>
         <div class="strip" id="feats"></div>
       </div>
-      <div class="note" data-align="#sandbox">Type to replace the text. Controls change only this box.</div>
+      <div class="note" data-align="#sandbox">Editable. The controls apply to this box only.</div>
     </div>
     <div class="row">
       <pre class="txt" id="css-out"></pre>
@@ -299,7 +307,7 @@ body {
   font-feature-settings: "ss03" 1;
   font-optical-sizing: auto;
 }</pre>
-      <div class="note" data-align="pre">Files in <a href="https://github.com/specbug/iconfig/tree/fonts/r-sans/web-fonts">r-sans/web-fonts</a></div>
+      <div class="note" data-align="pre">Files in <a class="pencil" href="https://github.com/specbug/iconfig/tree/fonts/r-sans/web-fonts">r-sans/web-fonts</a></div>
     </div>
   </section>
 </div>
@@ -311,18 +319,18 @@ const CHARS = `!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\
 const ramp = document.getElementById('ramp');
 for (let w = 100; w <= 1000; w += 100) {
   ramp.insertAdjacentHTML('beforeend',
-    `<div class="row"><p class="txt ramp" style="font-weight:${w}">Hamburgefontsiv 2026</p><div class="note" data-align=".ramp">${w}</div></div>`);
+    `<div class="row"><p class="txt ramp" style="font-weight:${w}">Hamburgefontsiv 2026</p><div class="note meta" data-align=".ramp">${w}</div></div>`);
 }
 const opszs = document.getElementById('opszs');
 for (const o of [9, 17, 24, 40]) {
   opszs.insertAdjacentHTML('beforeend',
-    `<div class="row"><p class="txt opsz" style="font-variation-settings:'opsz' ${o}">Spacing and contrast change</p><div class="note" data-align=".opsz">opsz ${o}</div></div>`);
+    `<div class="row"><p class="txt opsz" style="font-variation-settings:'opsz' ${o}">Spacing and contrast change</p><div class="note meta" data-align=".opsz">opsz ${o}</div></div>`);
 }
 
 // Characters, from the font's cmap
 const grid = document.getElementById('chars');
 for (const ch of CHARS) grid.insertAdjacentHTML('beforeend', `<span>${ch.replace('&', '&amp;').replace('<', '&lt;')}</span>`);
-document.getElementById('charcount').textContent = `${[...CHARS].length} characters with an outline`;
+document.getElementById('charcount').textContent = `${[...CHARS].length} characters, without the 15 combining marks`;
 
 // Notes: put each note's first baseline on the baseline of the line it belongs to.
 function baselineOf(el) {
@@ -358,7 +366,13 @@ function placeRule() {
   rule.style.left = zone.style.left = `${page.left}px`;
   const max = document.documentElement.scrollHeight - innerHeight;
   const h = rule.clientHeight, gap = 18;
-  rule.querySelectorAll('a').forEach(a => a.remove());
+  rule.querySelectorAll('a, .unit').forEach(a => a.remove());
+  // One tick per screen of scrolling
+  for (let y = 0; y <= max + 1; y += innerHeight) {
+    const t = document.createElement('div');
+    t.className = 'unit'; t.style.top = `${(max > 0 ? y / max : 0) * h}px`;
+    rule.appendChild(t);
+  }
   // Labels sit at their section's scroll position; sections past the last
   // scroll position would stack at the end, so keep labels `gap` apart.
   const ys = sections.map(s => Math.min(1, Math.max(0, (s.offsetTop - 24) / max)) * h);
@@ -409,7 +423,7 @@ function applyTest() {
   box.style.fontWeight = w;
   box.style.fontFeatureSettings = ffs;
   box.style.fontVariationSettings = o < 9 ? 'normal' : `'opsz' ${o}`;
-  document.getElementById('v-size').textContent = `${size} px`;
+  document.getElementById('v-size').textContent = `${size}\u00a0px`;
   document.getElementById('v-wght').textContent = w;
   document.getElementById('v-opsz').textContent = o < 9 ? 'auto' : o;
   document.getElementById('css-out').textContent =
@@ -418,6 +432,39 @@ function applyTest() {
 ['size', 'wght', 'opszr'].forEach(id => document.getElementById(id).addEventListener('input', applyTest));
 applyTest();
 
+// Red pencil: four stroke variants, one per link from a hash of its URL.
+// Tapered at both ends, 0.9–1.8px thick, centre line wobbling under 0.4px.
+const PENCIL = { light: '#d02e1e', dark: '#ee6951' };
+function strokePath(seed, scale) {
+  let x = seed * 9301 + 49297;
+  const rnd = () => (x = (x * 9301 + 49297) % 233280) / 233280;
+  const N = 24, W = 200, ph = [rnd(), rnd(), rnd(), rnd()].map(v => v * 6.283);
+  const top = [], bot = [];
+  for (let i = 0; i <= N; i++) {
+    const u = i / N, xx = (u * W).toFixed(1);
+    const taper = Math.min(1, u / 0.07, (1 - u) / 0.05);
+    const t = (0.9 + 0.9 * (0.5 + 0.5 * Math.sin(u * 5.1 + ph[0]) * Math.cos(u * 2.3 + ph[1]))) * scale * Math.max(0.15, taper);
+    const y = 2 + 0.35 * Math.sin(u * 3.7 + ph[2]) * Math.sin(u * 1.3 + ph[3]);
+    top.push(`${xx} ${(y - t / 2).toFixed(2)}`); bot.unshift(`${xx} ${(y + t / 2).toFixed(2)}`);
+  }
+  return `M${top.join('L')}L${bot.join('L')}Z`;
+}
+function pencilURL(variant, colour, hover) {
+  const d = strokePath(variant + 1, hover ? 1.3 : 1);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 4" preserveAspectRatio="none"><path d="${d}" fill="${colour}" fill-opacity="${hover ? 1 : 0.8}"/></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+function hash(str) { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; }
+function drawPencils() {
+  const colour = PENCIL[isDark() ? 'dark' : 'light'];
+  document.querySelectorAll('a.pencil').forEach(a => {
+    const v = hash(a.href) % 4;
+    a.style.backgroundImage = pencilURL(v, colour, false);
+    a.onmouseenter = () => { a.style.backgroundImage = pencilURL(v, colour, true); };
+    a.onmouseleave = () => { a.style.backgroundImage = pencilURL(v, colour, false); };
+  });
+}
+
 // Theme
 const themeBtn = document.getElementById('theme');
 function isDark() {
@@ -425,8 +472,10 @@ function isDark() {
   return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
 }
 function labelTheme() { themeBtn.textContent = isDark() ? 'Light' : 'Dark'; }
-themeBtn.onclick = () => { document.documentElement.dataset.theme = isDark() ? 'light' : 'dark'; labelTheme(); };
+themeBtn.onclick = () => { document.documentElement.dataset.theme = isDark() ? 'light' : 'dark'; labelTheme(); drawPencils(); };
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { labelTheme(); drawPencils(); });
 labelTheme();
+drawPencils();
 
 document.fonts.ready.then(() => { alignNotes(); placeRule(); requestAnimationFrame(tick); });
 addEventListener('resize', () => { alignNotes(); placeRule(); });
