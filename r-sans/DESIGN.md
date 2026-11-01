@@ -1,6 +1,8 @@
-# R Sans: design and build reference
+# R Sans — Design Philosophy & Build Reference
 
-R Sans is a variable sans (`opsz` 9–40, `wght` 100–1000) built from DM Sans (OFL). The build softens its terminals, raises the lowercase to Google Sans Text's proportions, and adds the text figures, small caps and spaces DM Sans lacks. It sets running text, headings and display type. R Mono sets code.
+> "Less, but better." — Dieter Rams
+
+R Sans is a warm geometric reading font built on DM Sans. It sits between Anthropic's Styrene B (rounded, warm, slightly squishy) and Google Sans Text (geometric, clean, body-text optimized). Optimized for body text reading at 16–20px.
 
 ---
 
@@ -8,7 +10,7 @@ R Sans is a variable sans (`opsz` 9–40, `wght` 100–1000) built from DM Sans 
 
 **Base skeleton**: DM Sans by Colophon Foundry — the same team behind Google Sans Text. Geometric DNA, optical size axis (9–40), designed for body text. Downloaded from [Google Fonts GitHub](https://github.com/google/fonts/tree/main/ofl/dmsans).
 
-**References**, and what each contributes:
+**Target aesthetic** — the intersection of three voices:
 
 | Influence | What we take | What we leave |
 |-----------|-------------|---------------|
@@ -16,14 +18,9 @@ R Sans is a variable sans (`opsz` 9–40, `wght` 100–1000) built from DM Sans 
 | **Google Sans Text** | Geometric clarity, reading comfort, generous metrics | The goofiness, brand coupling |
 | **Söhne** | Intellectual restraint, confident geometry | The coldness, tight metrics |
 
-**Roles**
+Filtered through the same Dieter Rams / Andy Matuschak design language as [R Mono](../r-mono/): circles and rectangles, heavy lines and negative space, simplified forms.
 
-| Role | Setting |
-|---|---|
-| Reading body | 18.5px / 1.62, weight 450 (425 in dark mode), `ss03` |
-| Headings | 21px, weight 620, −0.012em |
-| Display | `opsz` 40, weight 520, −0.02em, line height 1.02. No pair touches at this tracking (v3). |
-| Small text, UI numbers | Google Sans Flex, or R Sans with `tnum` / `smcp` since v3 |
+**What R Sans is not**: It's not a display font, not a UI font, not a brand font. It's a reading font — optimized for the experience of sitting with a 2,000-word blog post and forgetting you're reading a screen.
 
 ---
 
@@ -209,11 +206,11 @@ Verified across wght 100/400/700/1000 × opsz 9/14/17/24/40, upright and italic:
 
 ## v3: Typographic Completeness
 
-v3 adds what R Sans needed to set text without a second face, and fixes two faults a 2026 audit found. Everything is built on the variable fonts in `build.sh` step 2c, so every weight, optical size and static instance inherits it.
+v3 adds tabular and oldstyle figures, small caps, superiors and inferiors, and five spaces, and fixes two faults found in a 2026 audit. Everything is built on the variable fonts in `build.sh` step 2c, so every weight, optical size and static instance inherits it.
 
 ### Fixes
 
-- **Display collisions.** At the display setting (`opsz` 40, weight 520, −0.02em), 115 letter pairs touched in v1 and v2, among them `tt`, `ft`, `ty`, `ry`, `vy`, `wy` and `TT`. DM Sans's display master leaves about 10 units at diagonal apexes and crossbars, and the tracking removes 20. v3 adds kerning that is zero at text sizes and grows towards `opsz` 40, sized per weight master so every pair stays at least 8 units apart. Upright: 186 pairs; italic: 166. Text sizes are unchanged (the closest pair at 17px is still 37 units apart).
+- **Display collisions.** At `opsz` 40, weight 520 and −0.02em tracking, 115 letter pairs touched in v1 and v2, among them `tt`, `ft`, `ty`, `ry`, `vy`, `wy` and `TT`. DM Sans's display master leaves about 10 units at diagonal apexes and crossbars, and the tracking removes 20. v3 adds kerning that is zero at text sizes and grows towards `opsz` 40, sized per weight master so every pair stays at least 8 units apart. Upright: 186 pairs; italic: 166. Text sizes are unchanged (the closest pair at 17px is still 37 units apart).
 - **Colon and semicolon.** DM Sans puts the upper dot's top on the `o` overshoot. v2 raised `o` by 25 units and left the dots where they were. v3 moves them back onto the overshoot at every master.
 
 ### Additions
@@ -225,7 +222,7 @@ v3 adds what R Sans needed to set text without a second face, and fixes two faul
 | Superiors, inferiors | 0–9 for `sups`, `subs`/`sinf`, `numr`, `dnom`; U+2070–2079, U+2080–2089 | Before v3, `sups` covered 1–4 and never applied to R Sans's frozen 1, 3 and 4 |
 | Tabular figures | `tnum` | One width per master (the widest of 2–9); the 0 narrows to fit |
 | Oldstyle figures | `onum`, and tabular oldstyle with `tnum` | 0 1 2 at x-height; 3 4 5 7 9 descend and 6 8 ascend by the same distance |
-| Small caps | `smcp`, `c2sc`: 121 glyphs, including 85 accented and Æ Ø Ð Þ Ł Ħ Ŋ Œ Ə ẞ | 1.04 × x-height; 111 kerning pairs from the capitals, scaled |
+| Small caps | `smcp`, `c2sc`: 121 glyphs, including 85 accented and Æ Ø Ð Þ Ł Ħ Ŋ Œ Ə ẞ | 1.04 × x-height; 111 kerning pairs from the capitals, scaled. `smcp` also catches the `ss02`, `ss03` and `ss05` alternates and the `fi` and `fl` ligatures, which are substituted before it runs |
 
 ### How the smaller glyphs are drawn
 
@@ -239,10 +236,13 @@ The weight axis stops at 1000, so at the Black master these glyphs come out slig
 ### Evidence
 
 ![features](docs/v3/features.png)
+*Each v3 feature above v2's fallback: synthesised small caps and superiors, lining figures, and proportional figures (right column).*
 
 ![figures](docs/v3/figures.png)
+*Measured at weight 400, `opsz` 17. Oldstyle 0, 1 and 2 sit on the x-height; 3 4 5 7 9 descend and 6 8 ascend by the same distance. Small caps stand at 1.04 × x-height.*
 
 ![display](docs/v3/display.png)
+*At `opsz` 40, weight 520 and −0.02em, v2's `ft`, `tt`, `ty` and `vy` touch; in v3 every pair is at least 8 units apart.*
 
 Verified on the built fonts, upright and italic:
 
@@ -271,7 +271,7 @@ DM Sans's stylistic sets `ss01` (round quotes and commas), `ss04` (alternate u),
 | `numr`, `dnom` | Numerators and denominators 0–9, for fractions with ⁄ (v3) |
 | `case`, `liga`, `locl`, `ordn` | From DM Sans |
 
-There is no `zero` feature. The dotted zero exists only in the static instances.
+**No `zero` feature**: DM Sans does not include a slashed/dotted zero feature. Disambiguation is handled by our surgical dot addition on static instances.
 
 ---
 
@@ -342,11 +342,11 @@ Edit `OPSZ` at the top of `build.sh`:
 
 ### Enabling Stylistic Sets
 
-DM Sans's stylistic sets are available via CSS:
+The unfrozen stylistic sets are available via CSS:
 ```css
-.warm-quotes { font-feature-settings: 'ss01' 1; }
+.single-storey-g { font-feature-settings: 'ss03' 1; }
 .single-storey-a { font-feature-settings: 'ss02' 1; }
-.alt-digits { font-feature-settings: 'ss07' 1; }
+.alt-y { font-feature-settings: 'ss05' 1; }
 ```
 
 ### Generating Fewer Weights
@@ -438,15 +438,17 @@ The disambiguation forms (serifed I, tailed l, dotted zero) live only in the des
 
 ## Cross-Family Consistency with R Mono
 
-R Mono's x-height (0.520) is within 1% of R Sans's, so inline code at 0.89em matches the lowercase of the text around it.
+R Sans and R Mono share a design philosophy:
 
-| Decision | R Mono (code) | R Sans (text) |
-|----------|--------------|----------------|
-| Terminals | Softened | Tapered, apertures opened (v2) |
-| Disambiguation | Serifed `l`, dotted zero | Serifed `I`, tailed `l`, dotted zero (statics only) |
-| Geometry | Geometric overrides on Iosevka | DM Sans |
-| Spacing | 600-unit cell (JetBrains Mono width) | ~1.30× default line height |
-| x-height / UPM | 0.520 | 0.525 at `opsz` 17 |
+| Decision | R Mono (code) | R Sans (prose) | Shared principle |
+|----------|--------------|----------------|-----------------|
+| Terminal treatment | Softened terminals | Terminal softening surgery | Warmth without whimsy |
+| Disambiguation | Serifed `l`, dotted zero | Serifed `I`, tailed `l`, dotted zero | Instant character distinction |
+| Geometry | Geometric overrides on Iosevka | DM Sans geometric base | Confident geometry |
+| Line spacing | JB Mono width (600 units) | ~1.30x default line-height | "Room to breathe" |
+| Design DNA | Iosevka + geometric | DM Sans + warmth | Precision + humanity |
+
+R Mono's x-height (0.520) is within 1% of R Sans's (0.525 at `opsz` 17), so inline code at 0.89em matches the lowercase around it.
 
 **Pairing in CSS:**
 ```css
