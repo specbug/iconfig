@@ -204,22 +204,72 @@ Verified across wght 100/400/700/1000 × opsz 9/14/17/24/40, upright and italic:
 | ![site dark](docs/v2/site-article-dark.png) | sixeleven before/after, dark |
 | ![phone](docs/v2/site-phone.png) | sixeleven at 390px |
 
+## v3: Typographic Completeness
+
+v3 adds tabular and oldstyle figures, small caps, superiors and inferiors, and five spaces, and fixes two faults found in a 2026 audit. Everything is built on the variable fonts in `build.sh` step 2c, so every weight, optical size and static instance inherits it.
+
+### Fixes
+
+- **Display collisions.** At `opsz` 40, weight 520 and −0.02em tracking, 115 letter pairs touched in v1 and v2, among them `tt`, `ft`, `ty`, `ry`, `vy`, `wy` and `TT`. DM Sans's display master leaves about 10 units at diagonal apexes and crossbars, and the tracking removes 20. v3 adds kerning that is zero at text sizes and grows towards `opsz` 40, sized per weight master so every pair stays at least 8 units apart. Upright: 186 pairs; italic: 166. Text sizes are unchanged (the closest pair at 17px is still 37 units apart).
+- **Colon and semicolon.** DM Sans puts the upper dot's top on the `o` overshoot. v2 raised `o` by 25 units and left the dots where they were. v3 moves them back onto the overshoot at every master.
+
+### Additions
+
+| | Glyphs | Notes |
+|---|---|---|
+| Spaces | thin (U+2009), narrow no-break (U+202F), hair (U+200A), punctuation (U+2008), figure (U+2007) | Thin is 0.6 of the word space, hair 0.2, at every master; figure space is the tabular width |
+| Hyphens, primes | U+2010, U+2011, ′, ″ | Mapped to the existing hyphen and DM Sans's slanted quote glyphs |
+| Superiors, inferiors | 0–9 for `sups`, `subs`/`sinf`, `numr`, `dnom`; U+2070–2079, U+2080–2089 | Before v3, `sups` covered 1–4 and never applied to R Sans's frozen 1, 3 and 4 |
+| Tabular figures | `tnum` | One width per master (the widest of 2–9); the 0 narrows to fit |
+| Oldstyle figures | `onum`, and tabular oldstyle with `tnum` | 0 1 2 at x-height; 3 4 5 7 9 descend and 6 8 ascend by the same distance |
+| Small caps | `smcp`, `c2sc`: 121 glyphs, including 85 accented and Æ Ø Ð Þ Ł Ħ Ŋ Œ Ə ẞ | 1.04 × x-height; 111 kerning pairs from the capitals, scaled. `smcp` also catches the `ss02`, `ss03` and `ss05` alternates and the `fi` and `fl` ligatures, which are substituted before it runs |
+
+### How the smaller glyphs are drawn
+
+A capital or figure scaled down by itself comes out too light, because its stems shrink with it. Each small glyph is drawn instead from a heavier point on the weight axis, chosen per master so that after scaling its stems match a target:
+
+- **Superiors and inferiors** are half size. The target stem is 6.3 + 0.70 × the full stem. This rule was fitted to DM Sans's own designed superior 4, which the method reproduces within 0.3–0.9 units RMS at the regular masters.
+- **Small caps and oldstyle figures** match the lowercase stem.
+
+The weight axis stops at 1000, so at the Black master these glyphs come out slightly lighter than their targets.
+
+### Evidence
+
+![features](docs/v3/features.png)
+*Each v3 feature above v2's fallback: synthesised small caps and superiors, lining figures, and proportional figures (right column).*
+
+![figures](docs/v3/figures.png)
+*Measured at weight 400, `opsz` 17. Oldstyle 0, 1 and 2 sit on the x-height; 3 4 5 7 9 descend and 6 8 ascend by the same distance. Small caps stand at 1.04 × x-height.*
+
+![display](docs/v3/display.png)
+*At `opsz` 40, weight 520 and −0.02em, v2's `ft`, `tt`, `ty` and `vy` touch; in v3 every pair is at least 8 units apart.*
+
+Verified on the built fonts, upright and italic:
+
+- **No regressions to existing glyphs:** across the 20-point grid (wght 100/400/700/1000 × opsz 9/14/17/24/40), x-height, overshoots, accent and i-dot gaps, cap, ascender and descender heights, and contour directions all match v2. The only exception is the denominators of 1, 3 and 4, which were rebuilt from R Sans's own figures.
+- **Collisions:** no pair touches at opsz 40 at weights 100, 520 and 1000.
+- **Files:** OTS passes on all 36.
+- **Statics:** the features survive instancing, and the tabular zero gets the dot.
+
 ---
 
-## DM Sans Stylistic Sets
+## OpenType Features
 
-DM Sans includes several stylistic sets that remain available in R Sans (unfrozen):
+DM Sans's stylistic sets `ss01` (round quotes and commas), `ss04` (alternate u), `ss06` (Q with a straight tail) and `ss07` (geometric 1, 3, 4, 6, 9) are frozen into the default glyphs. The rest stay optional:
 
-| Tag | Description | Notes |
-|-----|-------------|-------|
-| `ss01` | Round quotes/commas | Warmer punctuation |
-| `ss02` | Single-storey 'a' (+ accented forms) | Display-style 'a' |
-| `ss03` | Alternate 'g' (+ accented forms) | Different loop style |
-| `ss04` | Alternate 'u' (+ accented forms) | |
-| `ss05` | Alternate 'y' (+ accented forms) | |
-| `ss06` | Alternate 'Q' (different tail) | |
-| `ss07` | Alternate digits (1, 3, 4, 6, 9) | |
-| `ss08` | Alternate quotes/arrows | |
+| Tag | Effect |
+|-----|--------|
+| `ss02` | Single-storey a |
+| `ss03` | Single-storey g (the reading default on sixeleven) |
+| `ss05` | Alternate y |
+| `ss08` | Alternate quotes and arrows |
+| `tnum` | Tabular figures (v3) |
+| `onum` | Oldstyle figures; with `tnum`, tabular oldstyle (v3) |
+| `lnum`, `pnum` | Back to lining or proportional figures (v3) |
+| `smcp`, `c2sc` | Small caps from lowercase or capitals (v3) |
+| `sups`, `subs`/`sinf` | Superior and inferior figures 0–9 (v3) |
+| `numr`, `dnom` | Numerators and denominators 0–9, for fractions with ⁄ (v3) |
+| `case`, `liga`, `locl`, `ordn` | From DM Sans |
 
 **No `zero` feature**: DM Sans does not include a slashed/dotted zero feature. Disambiguation is handled by our surgical dot addition on static instances.
 
@@ -253,6 +303,7 @@ Dumps glyph coordinates for all surgery target characters. Useful for verifying 
 2. **Rename** — All name table entries: `DM Sans` → `R Sans`
 3. **Terminal softening** — 12 glyph coordinate adjustments on variable fonts (c/e/s open their apertures)
 3b. **Proportion retune (v2)** — per-master lowercase x-height remap (outlines, gvar, composites, GPOS anchors, MVAR) and tighter round sidebearings
+3c. **Typographic completeness (v3)** — display kerning, colon/semicolon fix, spaces, figure sets, small caps; HVAR rebuilt
 4. **Metrics** — Align hhea with usWin for cross-platform consistency
 5. **Instance generation** — 8 weights × 2 styles = 16 static TTFs via `fontTools.varLib.instancer`
 6. **Disambiguation** — Serifed I, tailed l, dotted zero on each static instance
@@ -291,11 +342,11 @@ Edit `OPSZ` at the top of `build.sh`:
 
 ### Enabling Stylistic Sets
 
-DM Sans's stylistic sets are available via CSS:
+The unfrozen stylistic sets are available via CSS:
 ```css
-.warm-quotes { font-feature-settings: 'ss01' 1; }
+.single-storey-g { font-feature-settings: 'ss03' 1; }
 .single-storey-a { font-feature-settings: 'ss02' 1; }
-.alt-digits { font-feature-settings: 'ss07' 1; }
+.alt-y { font-feature-settings: 'ss05' 1; }
 ```
 
 ### Generating Fewer Weights
@@ -397,6 +448,8 @@ R Sans and R Mono share a design philosophy:
 | Line spacing | JB Mono width (600 units) | ~1.30x default line-height | "Room to breathe" |
 | Design DNA | Iosevka + geometric | DM Sans + warmth | Precision + humanity |
 
+R Mono's x-height (0.520) is within 1% of R Sans's (0.525 at `opsz` 17), so inline code at 0.89em matches the lowercase around it.
+
 **Pairing in CSS:**
 ```css
 body      { font-family: 'R Sans', system-ui, sans-serif; }
@@ -439,7 +492,8 @@ After building or modifying R Sans:
 | v2 retune | x-height ×1.048, round sidebearings −12%, open c/e/s apertures |
 | Recommended web weight | 450 in light mode (with ~`oklch(0.20)` ink), 425 in dark mode |
 | Disambiguation | Serifed I, tailed l, dotted zero (static only) |
-| Glyph count | ~486 |
+| Glyph count | 668 (486 from DM Sans, 182 added in v3) |
+| OpenType features | `tnum` `onum` `lnum` `pnum` `smcp` `c2sc` `sups` `subs` `sinf` `numr` `dnom` `ss02` `ss03` `ss05` `ss08` `case` `liga` `kern` `mark` |
 | Language support | Latin extended |
 | Weights | Thin (100) through ExtraBold (800) |
 | Styles | Upright + Italic for each weight |
