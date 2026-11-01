@@ -1,889 +1,435 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>R Sans — Type Specimen & Feature Lab</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R Sans specimen</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap">
 <style>
-  /* ── Font Loading ───────────────────────────────────────────── */
-  @font-face {
-    font-family: 'R Sans';
-    src: url('r-sans/web-fonts/RSans-Variable.ttf') format('truetype');
-    font-weight: 100 1000;
-    font-style: normal;
-    font-display: swap;
-  }
-  @font-face {
-    font-family: 'R Sans';
-    src: url('r-sans/web-fonts/RSans-Italic-Variable.ttf') format('truetype');
-    font-weight: 100 1000;
-    font-style: italic;
-    font-display: swap;
-  }
-  /* Stock DM Sans for A/B comparison (loaded from Google Fonts) */
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+@font-face { font-family: 'R Sans'; src: url('r-sans/web-fonts/RSans-Variable.woff2') format('woff2'); font-weight: 100 1000; font-style: normal; }
+@font-face { font-family: 'R Sans'; src: url('r-sans/web-fonts/RSans-Italic-Variable.woff2') format('woff2'); font-weight: 100 1000; font-style: italic; }
+@font-face { font-family: 'R Mono'; src: url('r-mono/web-fonts/RMono-Regular.woff2') format('woff2'); font-weight: 400; }
 
-  @font-face {
-    font-family: 'R Mono';
-    src: url('r-mono/web-fonts/RMono-Regular.woff2') format('woff2');
-    font-weight: 400;
-    font-style: normal;
+:root {
+  --ground: oklch(0.972 0.002 250);
+  --sheet:  oklch(0.995 0.001 250);
+  --ink:    oklch(0.19 0.004 250);
+  --ink-2:  oklch(0.47 0.004 250);
+  --ink-3:  oklch(0.60 0.004 250);
+  --rule:   oklch(0.87 0.003 250);
+  --grid:   oklch(0.915 0.003 250);
+  --link:   oklch(0.50 0.16 255);
+  --you:    oklch(0.60 0.20 30);
+  --body-weight: 450;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: oklch(0.175 0.004 250); --sheet: oklch(0.205 0.004 250);
+    --ink: oklch(0.925 0.003 250); --ink-2: oklch(0.70 0.004 250); --ink-3: oklch(0.55 0.004 250);
+    --rule: oklch(0.30 0.004 250); --grid: oklch(0.26 0.004 250);
+    --link: oklch(0.74 0.12 250); --you: oklch(0.70 0.17 30);
+    --body-weight: 425; color-scheme: dark;
   }
-  @font-face {
-    font-family: 'R Mono';
-    src: url('r-mono/web-fonts/RMono-Bold.woff2') format('woff2');
-    font-weight: 700;
-    font-style: normal;
-  }
-  @font-face {
-    font-family: 'R Mono';
-    src: url('r-mono/web-fonts/RMono-Italic.woff2') format('woff2');
-    font-weight: 400;
-    font-style: italic;
-  }
+}
+:root[data-theme="dark"] {
+  --ground: oklch(0.175 0.004 250); --sheet: oklch(0.205 0.004 250);
+  --ink: oklch(0.925 0.003 250); --ink-2: oklch(0.70 0.004 250); --ink-3: oklch(0.55 0.004 250);
+  --rule: oklch(0.30 0.004 250); --grid: oklch(0.26 0.004 250);
+  --link: oklch(0.74 0.12 250); --you: oklch(0.70 0.17 30);
+  --body-weight: 425; color-scheme: dark;
+}
 
-  /* ── Base ────────────────────────────────────────────────────── */
-  :root {
-    --bg: #fafaf9;
-    --bg-alt: #f0efed;
-    --fg: #1c1917;
-    --fg-dim: #57534e;
-    --fg-faint: #a8a29e;
-    --accent: #d97706;
-    --border: #e7e5e4;
-    --radius: 8px;
-    --specimen-font: 'R Sans', system-ui, sans-serif;
-  }
-  .dark {
-    --bg: #18181b;
-    --bg-alt: #27272a;
-    --fg: #fafaf9;
-    --fg-dim: #a1a1aa;
-    --fg-faint: #52525b;
-    --accent: #fbbf24;
-    --border: #3f3f46;
-  }
+* { box-sizing: border-box; }
+html { background: var(--ground); }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: 'R Sans', sans-serif;
+  font-weight: var(--body-weight);
+  font-feature-settings: "ss03" 1;
+  font-optical-sizing: auto;
+  font-size: 18.5px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: color-mix(in oklch, var(--link) 22%, transparent); }
+a { color: var(--link); text-decoration-line: underline; text-decoration-thickness: 1px; text-underline-offset: 0.22em;
+    text-decoration-color: color-mix(in oklch, var(--link) 45%, transparent); }
+a:hover { text-decoration-color: var(--link); }
+p { margin: 0; text-wrap: pretty; hanging-punctuation: first; }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+/* Grid: hidden instrument margin, text, notes */
+.page { width: 1128px; margin: 0 auto; padding: 32px 0 96px; display: grid;
+        grid-template-columns: 168px 56px 640px 48px 216px; }
+.row { grid-column: 3 / 6; display: grid; grid-template-columns: 640px 48px 216px; align-items: start; }
+.row > .txt { grid-column: 1; }
+.row > .note { grid-column: 3; }
+.note, .small { font-size: 13.5px; line-height: 1.48; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.small { font-size: 12.5px; }
 
-  body {
-    font-family: var(--specimen-font);
-    background: var(--bg);
-    color: var(--fg);
-    line-height: 1.6;
-    transition: background 0.3s, color 0.3s;
-  }
+header.top { grid-column: 3 / 6; display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 64px; }
+header.top .small { color: var(--ink-3); }
+.ghost { font: inherit; font-size: 12.5px; color: var(--ink-2); background: none; border: 0; padding: 0; cursor: pointer; }
+.ghost:hover { color: var(--ink); }
 
-  /* ── Layout ─────────────────────────────────────────────────── */
-  .toolbar {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: var(--bg-alt);
-    border-bottom: 1px solid var(--border);
-    padding: 12px 24px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-    backdrop-filter: blur(12px);
-  }
-  .toolbar-section {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .toolbar label {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--fg-dim);
-    cursor: pointer;
-    user-select: none;
-  }
-  .toolbar input[type="range"] {
-    width: 120px;
-    accent-color: var(--accent);
-  }
-  .toolbar .weight-val {
-    font-family: 'R Mono', monospace;
-    font-size: 12px;
-    min-width: 28px;
-    color: var(--accent);
-  }
-  .toolbar button {
-    padding: 4px 12px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--fg);
-    font-size: 12px;
-    cursor: pointer;
-    font-family: 'R Mono', monospace;
-  }
-  .toolbar button:hover { border-color: var(--accent); }
-  .toolbar button.active { background: var(--accent); color: #000; border-color: var(--accent); }
+h1.display { font-size: 72px; line-height: 1.02; font-weight: 520; letter-spacing: -0.02em;
+             font-variation-settings: 'opsz' 40; margin: 0; text-wrap: balance; }
+.sub { margin-top: 16px; color: var(--ink-2); }
+h2 { font-size: 21px; line-height: 1.3; font-weight: 620; letter-spacing: -0.012em; margin: 0; }
+section { grid-column: 3 / 6; display: grid; grid-template-columns: 640px 48px 216px; row-gap: 16px; margin-top: 64px; }
+section > *, section .row { grid-column: 1 / 4; }
+section > h2 { grid-column: 1; }
 
-  .container {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 48px 24px;
-  }
+.display-sample { font-size: 56px; line-height: 1.02; font-weight: 520; letter-spacing: -0.02em; font-variation-settings: 'opsz' 40; text-wrap: balance; }
+.heading-sample { margin-top: 32px; font-size: 21px; line-height: 1.3; font-weight: 620; letter-spacing: -0.012em; }
+.ramp { font-size: 30px; line-height: 1.3; white-space: nowrap; overflow: hidden; }
+.opsz { font-size: 30px; line-height: 1.3; }
 
-  section {
-    margin-bottom: 64px;
-  }
-  section > .section-label {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--fg-faint);
-    margin-bottom: 16px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border);
-    font-family: 'R Mono', monospace;
-  }
+table.figs { border-collapse: collapse; font-variant-numeric: tabular-nums; width: 100%; }
+table.figs th { font-size: 12.5px; font-weight: 450; color: var(--ink-2); text-align: right; padding: 0 0 8px 24px; }
+table.figs th:first-child, table.figs td:first-child { text-align: left; padding-left: 0; }
+table.figs td { padding: 6px 0 6px 24px; text-align: right; border-top: 1px solid var(--rule); }
 
-  /* ── Feature Toggles Panel ──────────────────────────────────── */
-  .features-panel {
-    background: var(--bg-alt);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    margin-bottom: 48px;
-  }
-  .features-panel h3 {
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--fg-dim);
-    margin-bottom: 16px;
-  }
-  .features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 8px;
-  }
-  .feature-toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .feature-toggle:hover { background: var(--bg); }
-  .feature-toggle input[type="checkbox"] {
-    accent-color: var(--accent);
-    width: 16px;
-    height: 16px;
-  }
-  .feature-toggle .ft-tag {
-    font-family: 'R Mono', monospace;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--accent);
-    min-width: 36px;
-  }
-  .feature-toggle .ft-desc {
-    font-size: 13px;
-    color: var(--fg-dim);
-  }
-  .feature-toggle .ft-preview {
-    margin-left: auto;
-    font-size: 16px;
-    color: var(--fg);
-    font-family: var(--specimen-font);
-  }
-  .preset-bar {
-    display: flex;
-    gap: 8px;
-    margin-top: 16px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border);
-  }
-  .preset-bar button {
-    padding: 4px 12px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--fg);
-    font-size: 12px;
-    cursor: pointer;
-    font-family: 'R Mono', monospace;
-  }
-  .preset-bar button:hover { border-color: var(--accent); }
+.sc { font-variant-caps: all-small-caps; }
+.osf { font-variant-numeric: oldstyle-nums; }
+.sup { font-variant-position: super; }
+.sub-pos { font-variant-position: sub; }
+.frac-n { font-feature-settings: "ss03" 1, "numr" 1; }
+.frac-d { font-feature-settings: "ss03" 1, "dnom" 1; }
 
-  /* ── Specimen Styles ────────────────────────────────────────── */
-  .specimen {
-    font-family: var(--specimen-font);
-  }
+.chars { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); border-top: 1px solid var(--rule); border-left: 1px solid var(--rule); }
+.chars span { height: 52px; display: flex; align-items: center; justify-content: center; font-size: 22px;
+              border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
 
-  .hero-text {
-    font-size: 72px;
-    font-weight: 700;
-    line-height: 1.05;
-    letter-spacing: -0.03em;
-    margin-bottom: 8px;
-  }
-  .hero-sub {
-    font-size: 24px;
-    font-weight: 300;
-    color: var(--fg-dim);
-    letter-spacing: -0.01em;
-  }
+#compare .big { font-size: 64px; line-height: 1.1; font-weight: 450; }
+.dm { font-family: 'DM Sans', sans-serif; }
 
-  .waterfall h1 { font-size: 48px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; margin-bottom: 12px; }
-  .waterfall h2 { font-size: 36px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 12px; }
-  .waterfall h3 { font-size: 28px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.25; margin-bottom: 12px; }
-  .waterfall h4 { font-size: 22px; font-weight: 500; line-height: 1.3; margin-bottom: 12px; }
-  .waterfall h5 { font-size: 18px; font-weight: 500; line-height: 1.35; margin-bottom: 12px; }
-  .waterfall h6 { font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-dim); margin-bottom: 12px; }
+/* Test */
+.test { background: var(--sheet); border: 1px solid var(--rule); padding: 24px; min-height: 160px; outline: none;
+        font-size: 30px; line-height: 1.35; }
+.controls { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 24px; margin-top: 16px; }
+.controls label { display: grid; grid-template-columns: 1fr auto; row-gap: 4px; font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.controls input[type=range] { grid-column: 1 / 3; width: 100%; accent-color: var(--ink); }
+.strip { display: flex; border: 1px solid var(--rule); margin-top: 16px; }
+.strip button { flex: 1; font: inherit; font-size: 12.5px; color: var(--ink-2); background: none; border: 0; border-right: 1px solid var(--rule);
+                padding: 8px 0; cursor: pointer; font-variant-numeric: tabular-nums; }
+.strip button:last-child { border-right: 0; }
+.strip button[aria-pressed="true"] { background: var(--ink); color: var(--ground); }
+pre, code { font-family: 'R Mono', monospace; font-size: 14px; line-height: 1.6; font-variant-ligatures: none; }
+pre { margin: 0; padding: 16px 20px; background: var(--sheet); border: 1px solid var(--rule); overflow-x: auto; }
 
-  .body-text p {
-    font-size: 17px;
-    line-height: 1.65;
-    margin-bottom: 16px;
-    max-width: 65ch;
-  }
-  .body-text em { font-style: italic; }
-  .body-text strong { font-weight: 700; }
+/* The Rule: contents and position, hidden until the pointer enters the margin */
+.rule { position: fixed; top: 20vh; height: 60vh; width: 168px; opacity: 0; transition: opacity 400ms cubic-bezier(.2,.7,.2,1); }
+.rule.on, .rule:focus-within { opacity: 1; }
+.rule .spine { position: absolute; right: 0; top: 0; bottom: 0; width: 1px; background: var(--rule); }
+.rule .done { position: absolute; right: 0; top: 0; width: 1px; background: var(--ink); }
+.rule .you { position: absolute; right: -6px; width: 13px; height: 1.5px; background: var(--you); }
+.rule a { position: absolute; right: 16px; transform: translateY(-50%); font-size: 12.5px; line-height: 1; color: var(--ink-2);
+          text-decoration: none; white-space: nowrap; }
+.rule a:hover, .rule a:focus { color: var(--ink); }
+.rule a::after { content: ''; position: absolute; right: -16px; top: 50%; width: 8px; height: 1px; background: var(--ink-3); }
+.rule-zone { position: fixed; top: 0; bottom: 0; width: 224px; }
 
-  blockquote {
-    border-left: 3px solid var(--accent);
-    padding: 16px 20px;
-    margin: 24px 0;
-    background: var(--bg-alt);
-    border-radius: 0 var(--radius) var(--radius) 0;
-    font-size: 18px;
-    font-style: italic;
-    font-weight: 400;
-    color: var(--fg-dim);
-    line-height: 1.6;
-  }
-  blockquote cite {
-    display: block;
-    margin-top: 8px;
-    font-size: 14px;
-    font-style: normal;
-    font-weight: 600;
-    color: var(--fg-faint);
-  }
-
-  .list-demo ul, .list-demo ol {
-    padding-left: 24px;
-    margin-bottom: 16px;
-    font-size: 17px;
-    line-height: 1.65;
-  }
-  .list-demo li { margin-bottom: 6px; }
-
-  .small-text { font-size: 13px; color: var(--fg-dim); line-height: 1.6; max-width: 55ch; }
-  .caption-text { font-size: 11px; color: var(--fg-faint); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
-
-  .code-block {
-    font-family: 'R Mono', monospace;
-    background: var(--bg-alt);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px 20px;
-    font-size: 14px;
-    line-height: 1.7;
-    overflow-x: auto;
-    margin: 16px 0;
-  }
-  .inline-code {
-    font-family: 'R Mono', monospace;
-    background: var(--bg-alt);
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 0.88em;
-  }
-
-  /* ── Glyph Grid ─────────────────────────────────────────────── */
-  .glyph-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
-    gap: 4px;
-  }
-  .glyph-cell {
-    aspect-ratio: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    border-radius: 4px;
-    background: var(--bg-alt);
-    transition: transform 0.1s;
-  }
-  .glyph-cell:hover {
-    transform: scale(1.3);
-    background: var(--accent);
-    color: #000;
-  }
-
-  /* ── Weight Ramp ────────────────────────────────────────────── */
-  .weight-ramp {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .weight-ramp-row {
-    display: flex;
-    align-items: baseline;
-    gap: 16px;
-  }
-  .weight-ramp-label {
-    font-family: 'R Mono', monospace;
-    font-size: 11px;
-    color: var(--fg-faint);
-    min-width: 80px;
-    text-align: right;
-  }
-  .weight-ramp-text {
-    font-size: 24px;
-    line-height: 1.5;
-  }
-
-  /* ── Comparison ─────────────────────────────────────────────── */
-  .comparison-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-  }
-  .comparison-card {
-    background: var(--bg-alt);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-  }
-  .comparison-card h4 {
-    font-family: 'R Mono', monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--fg-faint);
-    margin-bottom: 12px;
-  }
-  .comparison-card .comp-text {
-    font-size: 22px;
-    line-height: 1.55;
-  }
-  .comp-rsans { font-family: 'R Sans', sans-serif; }
-  .comp-dmsans { font-family: 'DM Sans', sans-serif; }
-  .comp-system { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-  .comp-arial { font-family: Arial, Helvetica, sans-serif; }
-
-  /* ── Warmth A/B ─────────────────────────────────────────────── */
-  .ab-section {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 32px;
-  }
-  .ab-panel {
-    padding: 24px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-alt);
-  }
-  .ab-panel h4 {
-    font-family: 'R Mono', monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--fg-faint);
-    margin-bottom: 16px;
-  }
-  .ab-panel p {
-    font-size: 17px;
-    line-height: 1.65;
-    margin-bottom: 12px;
-  }
-  .ab-panel .ab-chars {
-    font-size: 36px;
-    letter-spacing: 0.03em;
-    margin-bottom: 8px;
-  }
-
-  /* ── Pangram Block ──────────────────────────────────────────── */
-  .pangram-block {
-    font-size: 32px;
-    line-height: 1.4;
-    letter-spacing: -0.01em;
-    margin-bottom: 16px;
-  }
-
-  /* ── Diagnostic Characters ──────────────────────────────────── */
-  .diag-row {
-    display: flex;
-    align-items: baseline;
-    gap: 24px;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .diag-chars {
-    font-size: 36px;
-    letter-spacing: 0.05em;
-    min-width: 200px;
-  }
-  .diag-label {
-    font-family: 'R Mono', monospace;
-    font-size: 12px;
-    color: var(--fg-faint);
-  }
-
-  /* ── Article Demo ───────────────────────────────────────────── */
-  .article-demo { max-width: 65ch; }
-  .article-demo h2 { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
-  .article-demo .byline { font-size: 14px; color: var(--fg-faint); margin-bottom: 24px; }
-  .article-demo .lede { font-size: 20px; font-weight: 400; line-height: 1.55; color: var(--fg-dim); margin-bottom: 20px; }
-  .article-demo p { font-size: 17px; line-height: 1.7; margin-bottom: 16px; }
-  .article-demo h3 { font-size: 22px; font-weight: 600; margin: 32px 0 12px; }
-
-  /* ── Utilities ──────────────────────────────────────────────── */
-  .mt-8 { margin-top: 8px; }
-  .mt-16 { margin-top: 16px; }
-  .mt-24 { margin-top: 24px; }
-  .mb-8 { margin-bottom: 8px; }
-  .gap-24 { gap: 24px; }
-  .flex { display: flex; }
-  .items-center { align-items: center; }
-
-  /* ── Feature CSS output ─────────────────────────────────────── */
-  #feature-css-output {
-    font-family: 'R Mono', monospace;
-    font-size: 11px;
-    color: var(--fg-faint);
-    margin-top: 12px;
-    padding: 8px 10px;
-    background: var(--bg);
-    border-radius: 4px;
-    word-break: break-all;
-  }
+@media (max-width: 1160px) {
+  .page { width: auto; padding: 24px 16px 64px; grid-template-columns: 1fr; }
+  header.top, .row, section { grid-column: 1; grid-template-columns: 1fr; }
+  .row > .txt, .row > .note, section > *, section > h2 { grid-column: 1; }
+  .row > .note { margin-top: 8px !important; }
+  h1.display { font-size: 48px; }
+  .display-sample { font-size: 40px; }
+  .ramp, .opsz { font-size: 24px; }
+  #compare .big { font-size: 44px; }
+  .controls { grid-template-columns: 1fr; row-gap: 12px; }
+  .strip { flex-wrap: wrap; }
+  .strip button { flex: 1 0 33%; border-bottom: 1px solid var(--rule); }
+  .rule, .rule-zone { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .rule { transition: none; } }
 </style>
 </head>
 <body>
+<div class="page">
+  <div class="rule-zone" aria-hidden="true"></div>
+  <nav class="rule" aria-label="Contents"><div class="spine"></div><div class="done"></div><div class="you"></div></nav>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     TOOLBAR
-     ═══════════════════════════════════════════════════════════════ -->
-<div class="toolbar">
-  <div class="toolbar-section">
-    <label>Weight</label>
-    <input type="range" id="weight-slider" min="100" max="1000" value="400" step="1">
-    <span class="weight-val" id="weight-val">400</span>
+  <header class="top">
+    <span class="small">Specimen · v3</span>
+    <span><button class="ghost" id="theme">Dark</button></span>
+  </header>
+
+  <div class="row" id="top">
+    <div class="txt">
+      <h1 class="display">R Sans</h1>
+      <p class="sub">A variable sans for running text, headings and display, built from DM Sans.</p>
+    </div>
+    <div class="note" data-align=".display">opsz 9–40 · wght 100–1000<br>668 glyphs · upright and italic<br>SIL Open Font License</div>
   </div>
-  <div class="toolbar-section">
-    <label>Size</label>
-    <input type="range" id="size-slider" min="10" max="72" value="17" step="1">
-    <span class="weight-val" id="size-val">17</span>
-  </div>
-  <div class="toolbar-section">
-    <label>Opsz</label>
-    <input type="range" id="opsz-slider" min="9" max="40" value="14" step="1">
-    <span class="weight-val" id="opsz-val">14</span>
-  </div>
-  <div class="toolbar-section" style="margin-left: auto;">
-    <button id="theme-toggle" onclick="toggleTheme()">Dark</button>
-  </div>
+
+  <section id="reading" data-title="Reading">
+    <h2>Reading</h2>
+    <div class="row">
+      <p class="txt">R Sans starts from DM Sans, Colophon Foundry’s geometric family. The build tapers the terminals of twelve lowercase letters, raises the x-height by 4.8% so the lowercase matches Google Sans Text at the same size, and tightens the sidebearings of round letters by 12%.</p>
+      <div class="note">18.5 / 1.62 · weight 450<br>425 in dark mode · ss03</div>
+    </div>
+    <div class="row">
+      <p class="txt">Version 3 adds what a page needs from one face: tabular and oldstyle figures, small caps, superiors and inferiors, and thin and hair spaces. Its superiors are drawn at half size from a heavier weight, by a rule fitted to DM Sans’s own superior 4<span class="sup" id="n1">1</span>.</p>
+      <div class="note" data-align="#n1"><span class="sup">1</span> Within 0.3–0.9 units RMS on a 1000-unit em at the regular masters.</div>
+    </div>
+  </section>
+
+  <section id="display" data-title="Display">
+    <h2>Display and headings</h2>
+    <div class="row">
+      <p class="txt display-sample">A pretty city, fifty years away</p>
+      <div class="note" data-align=".display-sample">opsz 40 · weight 520<br>−0.02em · 1.02<br>Sample text</div>
+    </div>
+    <div class="row">
+      <p class="txt heading-sample">A heading set at 21 pixels</p>
+      <div class="note" data-align=".heading-sample">21px · weight 620 · −0.012em</div>
+    </div>
+  </section>
+
+  <section id="weights" data-title="Weights">
+    <h2>Weights</h2>
+    <div id="ramp"></div>
+  </section>
+
+  <section id="opsz" data-title="Optical sizes">
+    <h2>Optical sizes</h2>
+    <div id="opszs"></div>
+  </section>
+
+  <section id="figures" data-title="Figures">
+    <h2>Figures</h2>
+    <div class="row">
+      <table class="figs txt">
+        <thead><tr><th>Measured at weight 400, opsz 17</th><th>v1</th><th>v2</th><th>Google Sans Text</th></tr></thead>
+        <tbody>
+          <tr><td>x-height / em</td><td>0.501</td><td>0.525</td><td>0.526</td></tr>
+          <tr><td>width / x-height</td><td>0.951</td><td>0.902</td><td>0.884</td></tr>
+          <tr><td>o sidebearing / x-height</td><td>0.097</td><td>0.081</td><td>0.078</td></tr>
+          <tr><td>c aperture</td><td>0.337</td><td>0.367</td><td>0.363</td></tr>
+          <tr><td>e aperture</td><td>0.149</td><td>0.179</td><td>0.188</td></tr>
+        </tbody>
+      </table>
+      <div class="note" data-align="table.figs td">tnum<br>Tabular figures align in columns.</div>
+    </div>
+    <div class="row">
+      <p class="txt">v2 raised the x-height from 501 to 525 units; v3 added 182 glyphs, for 668 in all.</p>
+      <div class="note">Lining figures, the default</div>
+    </div>
+    <div class="row">
+      <p class="txt osf">v2 raised the x-height from 501 to 525 units; v3 added 182 glyphs, for 668 in all.</p>
+      <div class="note">onum<br>Oldstyle figures sit with the lowercase.</div>
+    </div>
+  </section>
+
+  <section id="smallcaps" data-title="Small caps">
+    <h2>Small caps</h2>
+    <div class="row">
+      <p class="txt">R Sans, like DM Sans, is released under the <span class="sc">OFL</span>, the Open Font License from <span class="sc">SIL</span> International. Accented forms such as <span class="sc">ÉCOLE</span>, <span class="sc">ØRESUND</span> and <span class="sc">ŁÓDŹ</span> are drawn too.</p>
+      <div class="note">smcp · c2sc<br>Stems match the lowercase.</div>
+    </div>
+  </section>
+
+  <section id="positions" data-title="Superiors">
+    <h2>Superiors, inferiors and fractions</h2>
+    <div class="row">
+      <p class="txt">Note markers<span class="sup">12</span>, chemical formulas such as H<span class="sub-pos">2</span>O and CO<span class="sub-pos">2</span>, and fractions such as <span class="frac-n">3</span>⁄<span class="frac-d">4</span> and <span class="frac-n">15</span>⁄<span class="frac-d">16</span>.</p>
+      <div class="note">sups · subs · numr · dnom<br>0–9, and U+2070–2089</div>
+    </div>
+  </section>
+
+  <section id="characters" data-title="Characters">
+    <h2>Characters</h2>
+    <div class="row">
+      <div class="txt chars" id="chars"></div>
+      <div class="note" id="charcount"></div>
+    </div>
+  </section>
+
+  <section id="compare" data-title="DM Sans">
+    <h2>Compared with DM Sans</h2>
+    <div class="row">
+      <p class="txt big">ace gs nou</p>
+      <div class="note" data-align=".big">R Sans</div>
+    </div>
+    <div class="row">
+      <p class="txt big dm">ace gs nou</p>
+      <div class="note" data-align=".big">DM Sans, same size</div>
+    </div>
+  </section>
+
+  <section id="test" data-title="Test">
+    <h2>Test</h2>
+    <div class="row">
+      <div class="txt">
+        <div class="test" id="sandbox" contenteditable="true" spellcheck="false">Quick zephyrs blow, vexing daft Jim. 1984, 2026 and 3,250.</div>
+        <div class="controls">
+          <label>Size <span id="v-size">30 px</span><input type="range" id="size" min="10" max="96" value="30"></label>
+          <label>Weight <span id="v-wght">450</span><input type="range" id="wght" min="100" max="1000" value="450"></label>
+          <label>Optical size <span id="v-opsz">auto</span><input type="range" id="opszr" min="8" max="40" value="8"></label>
+        </div>
+        <div class="strip" id="feats"></div>
+      </div>
+      <div class="note" data-align="#sandbox">Type to replace the text. Controls change only this box.</div>
+    </div>
+    <div class="row">
+      <pre class="txt" id="css-out"></pre>
+      <div class="note" data-align="#css-out">The settings above, as CSS</div>
+    </div>
+  </section>
+
+  <section id="use" data-title="Use">
+    <h2>Use</h2>
+    <div class="row">
+      <pre class="txt">@font-face {
+  font-family: 'R Sans';
+  src: url('RSans-Variable.woff2') format('woff2');
+  font-weight: 100 1000;
+}
+body {
+  font-family: 'R Sans', sans-serif;
+  font-size: 18.5px;
+  line-height: 1.62;
+  font-weight: 450;
+  font-feature-settings: "ss03" 1;
+  font-optical-sizing: auto;
+}</pre>
+      <div class="note" data-align="pre">Files in <a href="https://github.com/specbug/iconfig/tree/fonts/r-sans/web-fonts">r-sans/web-fonts</a></div>
+    </div>
+  </section>
 </div>
 
-<div class="container">
-
-  <!-- ── Hero ──────────────────────────────────────────────────── -->
-  <section>
-    <div class="specimen">
-      <div class="hero-text">R Sans</div>
-      <div class="hero-sub">Warm geometric reading font. Built on DM Sans.</div>
-    </div>
-  </section>
-
-  <!-- ── Warmth A/B — the key comparison ─────────────────────── -->
-  <section>
-    <div class="section-label">Warmth Test — R Sans vs Stock DM Sans</div>
-    <div class="ab-section">
-      <div class="ab-panel">
-        <h4>R Sans (v2: taller x-height, open soft terminals)</h4>
-        <div class="ab-chars" style="font-family: 'R Sans', sans-serif;">a c e f g r s t</div>
-        <p style="font-family: 'R Sans', sans-serif;">Typography is the craft of endowing human language with a durable visual form. When done well, the reader forgets about the type entirely and is absorbed in the content. Figures: 0123456789.</p>
-      </div>
-      <div class="ab-panel">
-        <h4>Stock DM Sans (flat terminals)</h4>
-        <div class="ab-chars" style="font-family: 'DM Sans', sans-serif;">a c e f g r s t</div>
-        <p style="font-family: 'DM Sans', sans-serif;">Typography is the craft of endowing human language with a durable visual form. When done well, the reader forgets about the type entirely and is absorbed in the content. Figures: 0123456789.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Feature Lab ───────────────────────────────────────────── -->
-  <section>
-    <div class="section-label">Feature Lab — toggle DM Sans stylistic sets</div>
-    <div class="features-panel">
-      <h3>Stylistic Sets & OpenType Features</h3>
-      <div class="features-grid" id="features-grid">
-        <!-- Populated by JS -->
-      </div>
-      <div class="preset-bar">
-        <button onclick="applyPreset('default')">R Sans Default</button>
-        <button onclick="applyPreset('warm')">Warm Quotes</button>
-        <button onclick="applyPreset('display')">Display Mode</button>
-        <button onclick="applyPreset('none')">Stock DM Sans</button>
-      </div>
-      <div id="feature-css-output"></div>
-    </div>
-  </section>
-
-  <!-- ── Diagnostic Characters ─────────────────────────────────── -->
-  <section>
-    <div class="section-label">Diagnostic — disambiguation & terminal warmth</div>
-    <div class="specimen">
-      <div class="diag-row">
-        <div class="diag-chars">I l 1 | ! i</div>
-        <div class="diag-label">Disambiguation — serifed I, tailed l (static instances)</div>
-      </div>
-      <div class="diag-row">
-        <div class="diag-chars">0 O o Q</div>
-        <div class="diag-label">Zero vs. letters — dotted zero (static instances)</div>
-      </div>
-      <div class="diag-row">
-        <div class="diag-chars">a c e s r t</div>
-        <div class="diag-label">Terminal-softened glyphs — compare with stock DM Sans above</div>
-      </div>
-      <div class="diag-row">
-        <div class="diag-chars">f g j n u y</div>
-        <div class="diag-label">Additional softened glyphs — hooks, arches, junctions</div>
-      </div>
-      <div class="diag-row">
-        <div class="diag-chars">1 2 3 4 5 6 7 8 9 0</div>
-        <div class="diag-label">Digit set — should feel cohesive</div>
-      </div>
-      <div class="diag-row">
-        <div class="diag-chars">" " ' ' , ; :</div>
-        <div class="diag-label">Punctuation — enable ss01 for round quotes</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Pangrams ──────────────────────────────────────────────── -->
-  <section>
-    <div class="section-label">Pangrams</div>
-    <div class="specimen">
-      <div class="pangram-block">The quick brown fox jumps over the lazy dog.</div>
-      <div class="pangram-block" style="font-style: italic;">The quick brown fox jumps over the lazy dog.</div>
-      <div class="pangram-block" style="font-weight: 700;">The quick brown fox jumps over the lazy dog.</div>
-      <div class="pangram-block" style="font-weight: 700; font-style: italic;">The quick brown fox jumps over the lazy dog.</div>
-      <div class="pangram-block" style="font-weight: 300;">Grumpy wizards make toxic brew for the evil queen and jack.</div>
-      <div class="pangram-block" style="font-weight: 500;">Pack my box with five dozen liquor jugs. 0123456789</div>
-    </div>
-  </section>
-
-  <!-- ── Weight Ramp ───────────────────────────────────────────── -->
-  <section>
-    <div class="section-label">Weight Ramp</div>
-    <div class="weight-ramp specimen">
-      <div class="weight-ramp-row"><span class="weight-ramp-label">100 Thin</span><span class="weight-ramp-text" style="font-weight:100">Warm geometry for every paragraph</span></div>
-      <div class="weight-ramp-row"><span class="weight-ramp-label">200 XLight</span><span class="weight-ramp-text" style="font-weight:200">Warm geometry for every paragraph</span></div>
-      <div class="weight-ramp-row"><span class="weight-ramp-label">300 Light</span><span class="weight-ramp-text" style="font-weight:300">Warm geometry for every paragraph</span></div>
-      <div class="weight-ramp-row"><span class="weight-ramp-label">400 Regular</span><span class="weight-ramp-text" style="font-weight:400">Warm geometry for every paragraph</span></div>
-      <div class="weight-ramp-row"><span class="weight-ramp-label">500 Medium</span><span class="weight-ramp-text" style="font-weight:500">Warm geometry for every paragraph</span></div>
-      <div class="weight-ramp-row"><span class="weight-ramp-label">600 SemiBold</span><span class="weight-ramp-text" style="font-weight:600">Warm geometry for every paragraph</span></div>
-      <div class="weight-ramp-row"><span class="weight-ramp-label">700 Bold</span><span class="weight-ramp-text" style="font-weight:700">Warm geometry for every paragraph</span></div>
-      <div class="weight-ramp-row"><span class="weight-ramp-label">800 XBold</span><span class="weight-ramp-text" style="font-weight:800">Warm geometry for every paragraph</span></div>
-    </div>
-  </section>
-
-  <!-- ── Headings ──────────────────────────────────────────────── -->
-  <section>
-    <div class="section-label">Heading Hierarchy</div>
-    <div class="waterfall specimen">
-      <h1>Heading One — Display</h1>
-      <h2>Heading Two — Section</h2>
-      <h3>Heading Three — Subsection</h3>
-      <h4>Heading Four — Group</h4>
-      <h5>Heading Five — Detail</h5>
-      <h6>Heading Six — Label</h6>
-    </div>
-  </section>
-
-  <!-- ── Body Text ─────────────────────────────────────────────── -->
-  <section>
-    <div class="section-label">Body Text — Long-form reading</div>
-    <div class="body-text specimen">
-      <p>Typography is the craft of endowing human language with a durable visual form, and thus with an independent existence. Its heartbeat is a steady, even pulse — the rhythm of text on a page. When done well, the reader forgets about the type entirely and is absorbed in the content.</p>
-      <p>Good proportional sans-serif fonts walk a tightrope between <strong>neutrality and character</strong>. Too neutral, and the font is invisible in the worst way — indistinguishable from system defaults, <em>generic and forgettable</em>. Too characterful, and it becomes a distraction, calling attention to itself when it should be serving the words.</p>
-      <p>R Sans aims for the sweet spot: <strong>warm enough to feel intentional</strong>, quiet enough to disappear during sustained reading. The softened terminals on <em>c</em>, <em>e</em>, <em>s</em>, and <em>t</em> create a gentle, organic texture — the typographic equivalent of rounded corners on a well-designed product.</p>
-      <p>Numbers should feel at home in running text: the figures <strong>0123456789</strong> sit on the baseline with tabular or proportional spacing. At body sizes, the optical size axis ensures optimal stroke contrast and spacing for comfortable reading.</p>
-    </div>
-  </section>
-
-  <!-- ── Blockquotes ───────────────────────────────────────────── -->
-  <section>
-    <div class="section-label">Blockquotes</div>
-    <div class="specimen">
-      <blockquote>
-        "Less, but better." Design should be reduced to its essence — but not stripped of its humanity.
-        <cite>— Dieter Rams</cite>
-      </blockquote>
-      <blockquote>
-        "Circles and rectangles; heavy lines and negative space." The tension between geometric primitives creates visual interest without complexity.
-        <cite>— Andy Matuschak, Orbit Design Language</cite>
-      </blockquote>
-      <blockquote>
-        "The details are not the details. They make the design."
-        <cite>— Charles Eames</cite>
-      </blockquote>
-    </div>
-  </section>
-
-  <!-- ── Lists ─────────────────────────────────────────────────── -->
-  <section>
-    <div class="section-label">Lists</div>
-    <div class="list-demo specimen">
-      <h4 style="margin-bottom: 12px;">What makes R Sans different from stock DM Sans:</h4>
-      <ul>
-        <li><strong>Proportion retune (v2)</strong> — x-height 0.501 → 0.525 UPM, tighter round sides, re-opened <em>c e s</em> apertures</li>
-        <li><strong>Terminal softening</strong> — 12 key glyphs have warmer, rounded stroke endings</li>
-        <li><strong>Disambiguation</strong> — Serifed <em>I</em>, tailed <em>l</em>, dotted <em>0</em> (static instances)</li>
-        <li><strong>Proper metadata</strong> — Clean RIBBI grouping, correct fsSelection/macStyle per weight</li>
-        <li><strong>Cross-platform metrics</strong> — hhea aligned with usWin for consistent rendering</li>
-      </ul>
-      <h4 style="margin: 24px 0 12px;">DM Sans advantages over the previous Inter base:</h4>
-      <ol>
-        <li>Geometric DNA — no fighting neo-grotesque origins</li>
-        <li>Optical size axis (9-40) for automatic text/display switching</li>
-        <li>Same design team as Google Sans Text (Colophon Foundry)</li>
-        <li>Body-text-optimized metrics (~1.30x default line-height)</li>
-        <li>Weight range up to 1000 (Black) for variable font</li>
-      </ol>
-    </div>
-  </section>
-
-  <!-- ── Mixed Content / Article ───────────────────────────────── -->
-  <section>
-    <div class="section-label">Article Demo — realistic mixed content</div>
-    <div class="article-demo specimen">
-      <h2>The Invisible Art of Type Selection</h2>
-      <div class="byline">By Rishit V. — 19 Feb 2026 — 4 min read</div>
-      <p class="lede">A well-chosen typeface is like good posture: you only notice it when it's wrong. But the difference between "fine" and "right" compounds over hours of reading.</p>
-      <p>Most developers never think about their UI font. They inherit whatever the OS provides — San Francisco on macOS, Segoe UI on Windows, Roboto on Android — and move on. And honestly? Those defaults are <em>excellent</em>. They're the product of millions of dollars and years of research.</p>
-      <p>But defaults are designed for <strong>everyone</strong>, which means they're optimized for <strong>no one in particular</strong>. A custom font lets you make opinionated choices: do you prefer geometric warmth or humanist flexibility? Tabular or proportional figures? Softened or clinical terminals?</p>
-
-      <h3>Why DM Sans as the Foundation</h3>
-      <p>DM Sans was designed by <strong>Colophon Foundry</strong> — the same team behind Google Sans Text. It has geometric DNA from birth: you don't have to fight neo-grotesque origins to make it feel warm and round. The optical size axis (9-40) automatically adjusts stroke contrast and spacing for different sizes.</p>
-      <p>At text sizes (<span class="inline-code">opsz=9-20</span>), DM Sans uses double-storey <em>a</em> and <em>g</em> — better for body text readability. At display sizes (<span class="inline-code">opsz=20-40</span>), it switches to the more geometric single-storey forms.</p>
-
-      <h3>Terminal Softening</h3>
-      <p>The core creative transformation is <strong>terminal softening</strong>. DM Sans has clean, precise flat-cut terminals — beautiful for a geometric font, but slightly clinical for sustained reading. R Sans tapers and rounds the terminals of 12 key glyphs by 5-18 units (on a 1000 UPM grid). Since v2 the cuts of <em>c</em>, <em>e</em> and <em>s</em> also move away from the counter, so softening no longer closes the apertures.</p>
-      <p>The effect is subtle on any individual letter but cumulative across a paragraph. Compare the <em>c</em>, <em>e</em>, and <em>s</em> in the A/B comparison above — the tapered terminals give R Sans a gentle warmth that stock DM Sans lacks, and the taller x-height lets it read at Google Sans Text's size.</p>
-      <div class="code-block">cd r-sans && ./build.sh              # full build
-./build.sh --inspect    # dump glyph coordinates</div>
-      <p>The build produces 16 static instances (8 weights x upright + italic) plus variable fonts for web use. Total web payload: <strong>~89 KB</strong> for the variable WOFF2, or ~22 KB per static WOFF2.</p>
-    </div>
-  </section>
-
-  <!-- ── Glyph Set ─────────────────────────────────────────────── -->
-  <section>
-    <div class="section-label">Glyph Overview</div>
-    <div class="glyph-grid specimen" id="glyph-grid">
-      <!-- Populated by JS -->
-    </div>
-  </section>
-
-  <!-- ── Small / Caption Text ──────────────────────────────────── -->
-  <section>
-    <div class="section-label">Small & Caption Text</div>
-    <div class="specimen">
-      <div class="small-text" style="margin-bottom: 16px;">
-        At 13px, R Sans should remain legible and pleasant. The serifed 'I' and tailed 'l' become critical disambiguation tools at this size. Line-height matters even more: tight leading turns text into a wall. DM Sans's native ~1.30x line-height means even cramped UIs get breathing room. Figures: 0123456789. Symbols: @#$%&*()!?
-      </div>
-      <div class="caption-text">
-        Figure 1.3 — Comparison of terminal softening impact at caption size. R Sans Regular 400, 11px/1.4.
-        Licensed under SIL OFL. Built from DM Sans by Colophon Foundry.
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Side-by-Side Comparison ───────────────────────────────── -->
-  <section>
-    <div class="section-label">Comparison — R Sans vs. Other Fonts</div>
-    <div class="comparison-grid">
-      <div class="comparison-card">
-        <h4>R Sans (your font)</h4>
-        <div class="comp-text comp-rsans">Aagl1I0O "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
-      </div>
-      <div class="comparison-card">
-        <h4>Stock DM Sans</h4>
-        <div class="comp-text comp-dmsans">Aagl1I0O "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
-      </div>
-      <div class="comparison-card">
-        <h4>System UI (SF Pro / Segoe)</h4>
-        <div class="comp-text comp-system">Aagl1I0O "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
-      </div>
-      <div class="comparison-card">
-        <h4>R Mono (for reference)</h4>
-        <div class="comp-text" style="font-family: 'R Mono', monospace;">Aagl1I0O "quotes" — The quick brown fox jumps over 13,647 lazy dogs.</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Editable Sandbox ──────────────────────────────────────── -->
-  <section>
-    <div class="section-label">Sandbox — Type anything</div>
-    <div class="specimen">
-      <div id="sandbox" contenteditable="true" style="
-        font-size: 28px;
-        line-height: 1.5;
-        padding: 24px;
-        border: 2px dashed var(--border);
-        border-radius: var(--radius);
-        min-height: 120px;
-        outline: none;
-        transition: border-color 0.2s;
-      " onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">Type here to test R Sans with your own text…</div>
-    </div>
-  </section>
-
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     SCRIPTS
-     ═══════════════════════════════════════════════════════════════ -->
 <script>
-// ── Feature definitions (DM Sans stylistic sets) ──────────────
-const FEATURES = [
-  { tag: 'ss01', name: 'Round quotes/commas',       preview: '\u201C\u201D , ;', frozen: true },
-  { tag: 'ss02', name: 'Single-storey a',            preview: 'a',  frozen: false },
-  { tag: 'ss03', name: 'Alternate g',                preview: 'g',  frozen: false },
-  { tag: 'ss04', name: 'Alternate u',                preview: 'u',  frozen: true },
-  { tag: 'ss05', name: 'Alternate y',                preview: 'y',  frozen: false },
-  { tag: 'ss06', name: 'Alternate Q (tail)',          preview: 'Q',  frozen: true },
-  { tag: 'ss07', name: 'Alternate digits',           preview: '1349', frozen: true },
-  { tag: 'ss08', name: 'Alternate quotes/arrows',    preview: '\u201C\u2192', frozen: false },
-  { tag: 'liga', name: 'Standard ligatures',         preview: 'fi fl', frozen: false },
-  { tag: 'calt', name: 'Contextual alternates',      preview: ':)', frozen: false },
-  { tag: 'tnum', name: 'Tabular figures',            preview: '0123', frozen: false },
-  { tag: 'frac', name: 'Fractions',                  preview: '1/2', frozen: false },
-  { tag: 'case', name: 'Case-sensitive forms',       preview: '(A)', frozen: false },
-  { tag: 'sups', name: 'Superscripts',               preview: '1st', frozen: false },
-  { tag: 'ordn', name: 'Ordinals',                   preview: '2nd', frozen: false },
-];
+const CHARS = `!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\`abcdefghijklmnopqrstuvwxyz{|}~¡¢£¤¥¦§¨©ª«¬®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄąĆćĊċČčĎďĐđĒēĔĕĖėĘęĚěĞğĠġĢģĦħĨĩĪīĬĭĮįİıĲĳĶķĹĺĻļĽľĿŀŁłŃńŅņŇňŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŞşŠšŢţŤťŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžƏƒǼǽȘșȚțȷəˆˇ˘˙˚˛˜˝πẀẁẂẃẄẅẞẼẽỲỳỸỹ‐‑–—‘’‚“”„†‡•…‰′″‹›⁄⁰⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉₨€₹₺₽ℓ™Ω℮←↑→↓↔↕↖↗↘↙∂∆∏∑−∕√∞∫≈≠≤≥◊ﬁﬂ`;
 
-// Presets
-const PRESETS = {
-  default: [],           // R Sans ships clean — warmth is in the outlines, not features
-  warm: ['ss01'],        // Round quotes for extra warmth
-  display: ['ss02', 'ss03', 'ss07'],  // Single-storey a, alt g, alt digits
-  none: [],              // Stock DM Sans (same as default — features are in the outlines)
-};
+// Weights and optical sizes
+const ramp = document.getElementById('ramp');
+for (let w = 100; w <= 1000; w += 100) {
+  ramp.insertAdjacentHTML('beforeend',
+    `<div class="row"><p class="txt ramp" style="font-weight:${w}">Hamburgefontsiv 2026</p><div class="note" data-align=".ramp">${w}</div></div>`);
+}
+const opszs = document.getElementById('opszs');
+for (const o of [9, 17, 24, 40]) {
+  opszs.insertAdjacentHTML('beforeend',
+    `<div class="row"><p class="txt opsz" style="font-variation-settings:'opsz' ${o}">Spacing and contrast change</p><div class="note" data-align=".opsz">opsz ${o}</div></div>`);
+}
 
-let activeFeatures = new Set(PRESETS.default);
+// Characters, from the font's cmap
+const grid = document.getElementById('chars');
+for (const ch of CHARS) grid.insertAdjacentHTML('beforeend', `<span>${ch.replace('&', '&amp;').replace('<', '&lt;')}</span>`);
+document.getElementById('charcount').textContent = `${[...CHARS].length} characters with an outline`;
 
-// ── Build feature toggles ──────────────────────────────────────
-function buildFeatureGrid() {
-  const grid = document.getElementById('features-grid');
-  grid.innerHTML = '';
-  FEATURES.forEach(f => {
-    const label = document.createElement('label');
-    label.className = 'feature-toggle' + (f.frozen ? ' is-frozen' : '');
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = activeFeatures.has(f.tag);
-    cb.dataset.tag = f.tag;
-    cb.addEventListener('change', () => {
-      if (cb.checked) activeFeatures.add(f.tag);
-      else activeFeatures.delete(f.tag);
-      applyFeatures();
-    });
-    label.appendChild(cb);
-    const tagSpan = document.createElement('span');
-    tagSpan.className = 'ft-tag';
-    tagSpan.textContent = f.tag;
-    label.appendChild(tagSpan);
-    const descSpan = document.createElement('span');
-    descSpan.className = 'ft-desc';
-    descSpan.textContent = f.name;
-    label.appendChild(descSpan);
-    const prevSpan = document.createElement('span');
-    prevSpan.className = 'ft-preview';
-    prevSpan.textContent = f.preview;
-    label.appendChild(prevSpan);
-    grid.appendChild(label);
+// Notes: put each note's first baseline on the baseline of the line it belongs to.
+function baselineOf(el) {
+  const probe = document.createElement('span');
+  probe.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
+  const host = el.matches('table, pre, div.chars, div.test') ? null : el;
+  if (!host) return el.getBoundingClientRect().top;
+  if (el.matches('span')) el.parentNode.insertBefore(probe, el); else el.insertBefore(probe, el.firstChild);
+  const y = probe.getBoundingClientRect().bottom;
+  probe.remove();
+  return y;
+}
+function alignNotes() {
+  const wide = matchMedia('(min-width: 1161px)').matches;
+  document.querySelectorAll('.row > .note').forEach(note => {
+    note.style.marginTop = '0px';
+    if (!wide) return;
+    const row = note.parentElement;
+    const sel = note.dataset.align;
+    const anchor = sel ? (row.querySelector(sel) || document.querySelector(sel)) : row.querySelector('.txt');
+    if (!anchor) return;
+    const target = anchor.matches('table, pre, div.chars, div.test') ? anchor.getBoundingClientRect().top + 14 : baselineOf(anchor);
+    const own = baselineOf(note);
+    note.style.marginTop = `${target - own}px`;
   });
 }
 
-function applyFeatures() {
-  const parts = FEATURES.map(f => `"${f.tag}" ${activeFeatures.has(f.tag) ? 1 : 0}`);
-  const css = parts.join(', ');
-  document.querySelectorAll('.specimen, .specimen *, .hero-text, .hero-sub, blockquote, .body-text, .waterfall, .list-demo, .article-demo, .article-demo *, .small-text, .caption-text, .comp-rsans, .diag-chars, .pangram-block, .weight-ramp-text, .glyph-cell, #sandbox, .ft-preview').forEach(el => {
-    el.style.fontFeatureSettings = css;
-  });
-  document.getElementById('feature-css-output').textContent =
-    `font-feature-settings: ${css};`;
-  document.querySelectorAll('#features-grid input[type="checkbox"]').forEach(cb => {
-    cb.checked = activeFeatures.has(cb.dataset.tag);
+// The Rule
+const rule = document.querySelector('.rule'), zone = document.querySelector('.rule-zone');
+const sections = [...document.querySelectorAll('section[data-title]')];
+function placeRule() {
+  const page = document.querySelector('.page').getBoundingClientRect();
+  rule.style.left = zone.style.left = `${page.left}px`;
+  const max = document.documentElement.scrollHeight - innerHeight;
+  const h = rule.clientHeight, gap = 18;
+  rule.querySelectorAll('a').forEach(a => a.remove());
+  // Labels sit at their section's scroll position; sections past the last
+  // scroll position would stack at the end, so keep labels `gap` apart.
+  const ys = sections.map(s => Math.min(1, Math.max(0, (s.offsetTop - 24) / max)) * h);
+  for (let i = 1; i < ys.length; i++) ys[i] = Math.max(ys[i], ys[i - 1] + gap);
+  for (let i = ys.length - 1, limit = h; i >= 0; i--, limit -= gap) ys[i] = Math.min(ys[i], limit);
+  sections.forEach((s, i) => {
+    const a = document.createElement('a');
+    a.href = `#${s.id}`; a.textContent = s.dataset.title;
+    a.style.top = `${ys[i]}px`;
+    rule.appendChild(a);
   });
 }
-
-function applyPreset(name) {
-  activeFeatures = new Set(PRESETS[name]);
-  buildFeatureGrid();
-  applyFeatures();
+let shown = 0, target = 0;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function tick() {
+  const max = document.documentElement.scrollHeight - innerHeight;
+  target = max > 0 ? scrollY / max : 0;
+  shown = reduce ? target : shown + (target - shown) * 0.22;
+  const h = rule.clientHeight;
+  rule.querySelector('.done').style.height = `${shown * h}px`;
+  rule.querySelector('.you').style.top = `${shown * h - 0.75}px`;
+  requestAnimationFrame(tick);
 }
-
-// ── Weight, size & opsz sliders ─────────────────────────────────
-document.getElementById('weight-slider').addEventListener('input', e => {
-  const w = e.target.value;
-  document.getElementById('weight-val').textContent = w;
-  document.querySelectorAll('.specimen, .specimen *').forEach(el => {
-    if (!el.closest('.weight-ramp') && !el.closest('.waterfall')) {
-      el.style.fontWeight = w;
-    }
-  });
+zone.addEventListener('pointerenter', () => rule.classList.add('on'));
+rule.addEventListener('pointerenter', () => rule.classList.add('on'));
+document.addEventListener('pointermove', e => {
+  const left = document.querySelector('.page').getBoundingClientRect().left;
+  if (e.clientX > left + 224) rule.classList.remove('on');
 });
 
-document.getElementById('size-slider').addEventListener('input', e => {
-  const s = e.target.value;
-  document.getElementById('size-val').textContent = s;
-  document.querySelectorAll('.body-text p, .list-demo li, .article-demo p').forEach(el => {
-    el.style.fontSize = s + 'px';
-  });
-});
-
-document.getElementById('opsz-slider').addEventListener('input', e => {
-  const o = e.target.value;
-  document.getElementById('opsz-val').textContent = o;
-  document.querySelectorAll('.specimen, .specimen *').forEach(el => {
-    el.style.fontVariationSettings = `"opsz" ${o}`;
-  });
-});
-
-// ── Theme toggle ───────────────────────────────────────────────
-function toggleTheme() {
-  document.body.classList.toggle('dark');
-  const btn = document.getElementById('theme-toggle');
-  btn.textContent = document.body.classList.contains('dark') ? 'Light' : 'Dark';
+// Test box
+const box = document.getElementById('sandbox');
+const FEATS = [['ss02', 'a'], ['ss03', 'g'], ['ss05', 'y'], ['ss08', '“ →'], ['tnum', 'tnum'], ['onum', 'onum'], ['smcp', 'smcp'], ['c2sc', 'c2sc'], ['sups', 'sups']];
+const on = new Set(['ss03']);
+const strip = document.getElementById('feats');
+for (const [tag, label] of FEATS) {
+  const b = document.createElement('button');
+  b.textContent = tag.startsWith('ss') ? `${tag} ${label}` : label;
+  b.setAttribute('aria-pressed', on.has(tag));
+  b.onclick = () => { on.has(tag) ? on.delete(tag) : on.add(tag); b.setAttribute('aria-pressed', on.has(tag)); applyTest(); };
+  strip.appendChild(b);
 }
-
-// ── Glyph grid ─────────────────────────────────────────────────
-function buildGlyphGrid() {
-  const grid = document.getElementById('glyph-grid');
-  const chars = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789!@#$%^&*()-=+[]{}|;:\'",.<>?/~`';
-  chars.split('').forEach(ch => {
-    const cell = document.createElement('div');
-    cell.className = 'glyph-cell';
-    cell.textContent = ch;
-    grid.appendChild(cell);
-  });
+function applyTest() {
+  const size = +document.getElementById('size').value, w = +document.getElementById('wght').value;
+  const o = +document.getElementById('opszr').value;
+  const ffs = [...on].map(t => `"${t}" 1`).join(', ') || 'normal';
+  box.style.fontSize = `${size}px`;
+  box.style.fontWeight = w;
+  box.style.fontFeatureSettings = ffs;
+  box.style.fontVariationSettings = o < 9 ? 'normal' : `'opsz' ${o}`;
+  document.getElementById('v-size').textContent = `${size} px`;
+  document.getElementById('v-wght').textContent = w;
+  document.getElementById('v-opsz').textContent = o < 9 ? 'auto' : o;
+  document.getElementById('css-out').textContent =
+    `font-size: ${size}px;\nfont-weight: ${w};\nfont-feature-settings: ${ffs};` + (o < 9 ? '' : `\nfont-variation-settings: 'opsz' ${o};`);
 }
+['size', 'wght', 'opszr'].forEach(id => document.getElementById(id).addEventListener('input', applyTest));
+applyTest();
 
-// ── Init ───────────────────────────────────────────────────────
-buildFeatureGrid();
-buildGlyphGrid();
-applyFeatures();
+// Theme
+const themeBtn = document.getElementById('theme');
+function isDark() {
+  const t = document.documentElement.dataset.theme;
+  return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+}
+function labelTheme() { themeBtn.textContent = isDark() ? 'Light' : 'Dark'; }
+themeBtn.onclick = () => { document.documentElement.dataset.theme = isDark() ? 'light' : 'dark'; labelTheme(); };
+labelTheme();
+
+document.fonts.ready.then(() => { alignNotes(); placeRule(); requestAnimationFrame(tick); });
+addEventListener('resize', () => { alignNotes(); placeRule(); });
 </script>
 </body>
 </html>
