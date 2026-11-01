@@ -1,8 +1,6 @@
-# R Sans — Design Philosophy & Build Reference
+# R Sans: design and build reference
 
-> "Less, but better." — Dieter Rams
-
-R Sans is a warm geometric reading font built on DM Sans. It sits between Anthropic's Styrene B (rounded, warm, slightly squishy) and Google Sans Text (geometric, clean, body-text optimized). Optimized for body text reading at 16–20px.
+R Sans is a variable sans (`opsz` 9–40, `wght` 100–1000) built from DM Sans (OFL). The build softens its terminals, raises the lowercase to Google Sans Text's proportions, and adds the text figures, small caps and spaces DM Sans lacks. It sets running text, headings and display type. R Mono sets code.
 
 ---
 
@@ -10,7 +8,7 @@ R Sans is a warm geometric reading font built on DM Sans. It sits between Anthro
 
 **Base skeleton**: DM Sans by Colophon Foundry — the same team behind Google Sans Text. Geometric DNA, optical size axis (9–40), designed for body text. Downloaded from [Google Fonts GitHub](https://github.com/google/fonts/tree/main/ofl/dmsans).
 
-**Target aesthetic** — the intersection of three voices:
+**References**, and what each contributes:
 
 | Influence | What we take | What we leave |
 |-----------|-------------|---------------|
@@ -18,9 +16,14 @@ R Sans is a warm geometric reading font built on DM Sans. It sits between Anthro
 | **Google Sans Text** | Geometric clarity, reading comfort, generous metrics | The goofiness, brand coupling |
 | **Söhne** | Intellectual restraint, confident geometry | The coldness, tight metrics |
 
-Filtered through the same Dieter Rams / Andy Matuschak design language as [R Mono](../r-mono/): circles and rectangles, heavy lines and negative space, simplified forms.
+**Roles**
 
-**What R Sans is not**: It's not a display font, not a UI font, not a brand font. It's a reading font — optimized for the experience of sitting with a 2,000-word blog post and forgetting you're reading a screen.
+| Role | Setting |
+|---|---|
+| Reading body | 18.5px / 1.62, weight 450 (425 in dark mode), `ss03` |
+| Headings | 21px, weight 620, −0.012em |
+| Display | `opsz` 40, weight 520, −0.02em, line height 1.02. No pair touches at this tracking (v3). |
+| Small text, UI numbers | Google Sans Flex, or R Sans with `tnum` / `smcp` since v3 |
 
 ---
 
@@ -204,24 +207,71 @@ Verified across wght 100/400/700/1000 × opsz 9/14/17/24/40, upright and italic:
 | ![site dark](docs/v2/site-article-dark.png) | sixeleven before/after, dark |
 | ![phone](docs/v2/site-phone.png) | sixeleven at 390px |
 
+## v3: Typographic Completeness
+
+v3 adds what R Sans needed to set text without a second face, and fixes two faults a 2026 audit found. Everything is built on the variable fonts in `build.sh` step 2c, so every weight, optical size and static instance inherits it.
+
+### Fixes
+
+- **Display collisions.** At the display setting (`opsz` 40, weight 520, −0.02em), 115 letter pairs touched in v1 and v2, among them `tt`, `ft`, `ty`, `ry`, `vy`, `wy` and `TT`. DM Sans's display master leaves about 10 units at diagonal apexes and crossbars, and the tracking removes 20. v3 adds kerning that is zero at text sizes and grows towards `opsz` 40, sized per weight master so every pair stays at least 8 units apart. Upright: 186 pairs; italic: 166. Text sizes are unchanged (the closest pair at 17px is still 37 units apart).
+- **Colon and semicolon.** DM Sans puts the upper dot's top on the `o` overshoot. v2 raised `o` by 25 units and left the dots where they were. v3 moves them back onto the overshoot at every master.
+
+### Additions
+
+| | Glyphs | Notes |
+|---|---|---|
+| Spaces | thin (U+2009), narrow no-break (U+202F), hair (U+200A), punctuation (U+2008), figure (U+2007) | Thin is 0.6 of the word space, hair 0.2, at every master; figure space is the tabular width |
+| Hyphens, primes | U+2010, U+2011, ′, ″ | Mapped to the existing hyphen and DM Sans's slanted quote glyphs |
+| Superiors, inferiors | 0–9 for `sups`, `subs`/`sinf`, `numr`, `dnom`; U+2070–2079, U+2080–2089 | Before v3, `sups` covered 1–4 and never applied to R Sans's frozen 1, 3 and 4 |
+| Tabular figures | `tnum` | One width per master (the widest of 2–9); the 0 narrows to fit |
+| Oldstyle figures | `onum`, and tabular oldstyle with `tnum` | 0 1 2 at x-height; 3 4 5 7 9 descend and 6 8 ascend by the same distance |
+| Small caps | `smcp`, `c2sc`: 121 glyphs, including 85 accented and Æ Ø Ð Þ Ł Ħ Ŋ Œ Ə ẞ | 1.04 × x-height; 111 kerning pairs from the capitals, scaled |
+
+### How the smaller glyphs are drawn
+
+A capital or figure scaled down by itself comes out too light, because its stems shrink with it. Each small glyph is drawn instead from a heavier point on the weight axis, chosen per master so that after scaling its stems match a target:
+
+- **Superiors and inferiors** are half size. The target stem is 6.3 + 0.70 × the full stem. This rule was fitted to DM Sans's own designed superior 4, which the method reproduces within 0.3–0.9 units RMS at the regular masters.
+- **Small caps and oldstyle figures** match the lowercase stem.
+
+The weight axis stops at 1000, so at the Black master these glyphs come out slightly lighter than their targets.
+
+### Evidence
+
+![features](docs/v3/features.png)
+
+![figures](docs/v3/figures.png)
+
+![display](docs/v3/display.png)
+
+Verified on the built fonts, upright and italic:
+
+- **No regressions to existing glyphs:** across the 20-point grid (wght 100/400/700/1000 × opsz 9/14/17/24/40), x-height, overshoots, accent and i-dot gaps, cap, ascender and descender heights, and contour directions all match v2. The only exception is the denominators of 1, 3 and 4, which were rebuilt from R Sans's own figures.
+- **Collisions:** no pair touches at opsz 40 at weights 100, 520 and 1000.
+- **Files:** OTS passes on all 36.
+- **Statics:** the features survive instancing, and the tabular zero gets the dot.
+
 ---
 
-## DM Sans Stylistic Sets
+## OpenType Features
 
-DM Sans includes several stylistic sets that remain available in R Sans (unfrozen):
+DM Sans's stylistic sets `ss01` (round quotes and commas), `ss04` (alternate u), `ss06` (Q with a straight tail) and `ss07` (geometric 1, 3, 4, 6, 9) are frozen into the default glyphs. The rest stay optional:
 
-| Tag | Description | Notes |
-|-----|-------------|-------|
-| `ss01` | Round quotes/commas | Warmer punctuation |
-| `ss02` | Single-storey 'a' (+ accented forms) | Display-style 'a' |
-| `ss03` | Alternate 'g' (+ accented forms) | Different loop style |
-| `ss04` | Alternate 'u' (+ accented forms) | |
-| `ss05` | Alternate 'y' (+ accented forms) | |
-| `ss06` | Alternate 'Q' (different tail) | |
-| `ss07` | Alternate digits (1, 3, 4, 6, 9) | |
-| `ss08` | Alternate quotes/arrows | |
+| Tag | Effect |
+|-----|--------|
+| `ss02` | Single-storey a |
+| `ss03` | Single-storey g (the reading default on sixeleven) |
+| `ss05` | Alternate y |
+| `ss08` | Alternate quotes and arrows |
+| `tnum` | Tabular figures (v3) |
+| `onum` | Oldstyle figures; with `tnum`, tabular oldstyle (v3) |
+| `lnum`, `pnum` | Back to lining or proportional figures (v3) |
+| `smcp`, `c2sc` | Small caps from lowercase or capitals (v3) |
+| `sups`, `subs`/`sinf` | Superior and inferior figures 0–9 (v3) |
+| `numr`, `dnom` | Numerators and denominators 0–9, for fractions with ⁄ (v3) |
+| `case`, `liga`, `locl`, `ordn` | From DM Sans |
 
-**No `zero` feature**: DM Sans does not include a slashed/dotted zero feature. Disambiguation is handled by our surgical dot addition on static instances.
+There is no `zero` feature. The dotted zero exists only in the static instances.
 
 ---
 
@@ -253,6 +303,7 @@ Dumps glyph coordinates for all surgery target characters. Useful for verifying 
 2. **Rename** — All name table entries: `DM Sans` → `R Sans`
 3. **Terminal softening** — 12 glyph coordinate adjustments on variable fonts (c/e/s open their apertures)
 3b. **Proportion retune (v2)** — per-master lowercase x-height remap (outlines, gvar, composites, GPOS anchors, MVAR) and tighter round sidebearings
+3c. **Typographic completeness (v3)** — display kerning, colon/semicolon fix, spaces, figure sets, small caps; HVAR rebuilt
 4. **Metrics** — Align hhea with usWin for cross-platform consistency
 5. **Instance generation** — 8 weights × 2 styles = 16 static TTFs via `fontTools.varLib.instancer`
 6. **Disambiguation** — Serifed I, tailed l, dotted zero on each static instance
@@ -387,15 +438,15 @@ The disambiguation forms (serifed I, tailed l, dotted zero) live only in the des
 
 ## Cross-Family Consistency with R Mono
 
-R Sans and R Mono share a design philosophy:
+R Mono's x-height (0.520) is within 1% of R Sans's, so inline code at 0.89em matches the lowercase of the text around it.
 
-| Decision | R Mono (code) | R Sans (prose) | Shared principle |
-|----------|--------------|----------------|-----------------|
-| Terminal treatment | Softened terminals | Terminal softening surgery | Warmth without whimsy |
-| Disambiguation | Serifed `l`, dotted zero | Serifed `I`, tailed `l`, dotted zero | Instant character distinction |
-| Geometry | Geometric overrides on Iosevka | DM Sans geometric base | Confident geometry |
-| Line spacing | JB Mono width (600 units) | ~1.30x default line-height | "Room to breathe" |
-| Design DNA | Iosevka + geometric | DM Sans + warmth | Precision + humanity |
+| Decision | R Mono (code) | R Sans (text) |
+|----------|--------------|----------------|
+| Terminals | Softened | Tapered, apertures opened (v2) |
+| Disambiguation | Serifed `l`, dotted zero | Serifed `I`, tailed `l`, dotted zero (statics only) |
+| Geometry | Geometric overrides on Iosevka | DM Sans |
+| Spacing | 600-unit cell (JetBrains Mono width) | ~1.30× default line height |
+| x-height / UPM | 0.520 | 0.525 at `opsz` 17 |
 
 **Pairing in CSS:**
 ```css
@@ -439,7 +490,8 @@ After building or modifying R Sans:
 | v2 retune | x-height ×1.048, round sidebearings −12%, open c/e/s apertures |
 | Recommended web weight | 450 in light mode (with ~`oklch(0.20)` ink), 425 in dark mode |
 | Disambiguation | Serifed I, tailed l, dotted zero (static only) |
-| Glyph count | ~486 |
+| Glyph count | 668 (486 from DM Sans, 182 added in v3) |
+| OpenType features | `tnum` `onum` `lnum` `pnum` `smcp` `c2sc` `sups` `subs` `sinf` `numr` `dnom` `ss02` `ss03` `ss05` `ss08` `case` `liga` `kern` `mark` |
 | Language support | Latin extended |
 | Weights | Thin (100) through ExtraBold (800) |
 | Styles | Upright + Italic for each weight |
