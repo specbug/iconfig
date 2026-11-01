@@ -1095,6 +1095,22 @@ class VF:
         li = len(gsub.LookupList.Lookup) - 1
         self._attach(gsub, tag, li)
 
+    def add_multiple_subst(self, tag, mapping):
+        """Append a type-2 lookup to feature `tag` (one glyph to a sequence)."""
+        if not mapping:
+            return
+        gsub = self.font['GSUB'].table
+        st = ot.MultipleSubst()
+        st.mapping = {k: list(v) for k, v in mapping.items()}
+        lk = ot.Lookup()
+        lk.LookupType = 2
+        lk.LookupFlag = 0
+        lk.SubTable = [st]
+        lk.SubTableCount = 1
+        gsub.LookupList.Lookup.append(lk)
+        gsub.LookupList.LookupCount = len(gsub.LookupList.Lookup)
+        self._attach(gsub, tag, len(gsub.LookupList.Lookup) - 1)
+
     def _attach(self, table, tag, lookup_index):
         recs = [fr for fr in table.FeatureList.FeatureRecord if fr.FeatureTag == tag]
         if recs:
@@ -1491,8 +1507,43 @@ def step_small_caps(vf, path_for_hb):
         smcp[cmap[ord(ch.lower())]] = name
         c2sc[cap_g] = name
         built += 1
+    # Lowercase stylistic alternates (a.ss02, g.ss03, y.ss05, ...) are substituted
+    # before smcp runs, so map each alternate to its letter's small cap too.
+    gsub_t = f['GSUB'].table
+    def single_maps(tags):
+        for fr in gsub_t.FeatureList.FeatureRecord:
+            if fr.FeatureTag not in tags:
+                continue
+            for li in fr.Feature.LookupListIndex:
+                lk = gsub_t.LookupList.Lookup[li]
+                for st in lk.SubTable:
+                    if lk.LookupType == 7:
+                        st = st.ExtSubTable
+                    if getattr(st, 'mapping', None):
+                        yield st.mapping
+    ss_tags = {f'ss{i:02d}' for i in range(1, 21)}
+    for mapping in list(single_maps(ss_tags)):
+        for src, alt in mapping.items():
+            if src in smcp and alt not in smcp:
+                smcp[alt] = smcp[src]
     vf.add_single_subst('smcp', smcp)
     vf.add_single_subst('c2sc', c2sc)
+    # liga runs before smcp, so decompose ligatures (fi, fl) into small caps.
+    lig_sc = {}
+    for fr in gsub_t.FeatureList.FeatureRecord:
+        if fr.FeatureTag != 'liga':
+            continue
+        for li in fr.Feature.LookupListIndex:
+            lk = gsub_t.LookupList.Lookup[li]
+            for st in lk.SubTable:
+                if lk.LookupType == 7:
+                    st = st.ExtSubTable
+                for first, ligs in getattr(st, 'ligatures', {}).items():
+                    for lig in ligs:
+                        parts = [first] + list(lig.Component)
+                        if all(g in smcp for g in parts):
+                            lig_sc[lig.LigGlyph] = [smcp[g] for g in parts]
+    vf.add_multiple_subst('smcp', lig_sc)
 
     # kerning: the capitals' kerning, scaled, per master
     face = hb.Face(hb.Blob.from_file_path(path_for_hb))
