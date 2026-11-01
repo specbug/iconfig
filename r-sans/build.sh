@@ -50,6 +50,11 @@
 #    Done per master on the variable fonts (gvar, composites, GPOS
 #    anchors, MVAR), so every weight and optical size stays consistent.
 #
+# 6. v3 TYPOGRAPHIC COMPLETENESS
+#    Tabular and oldstyle figures, superiors/inferiors 0-9, small caps,
+#    thin/hair/narrow spaces, display kerning so nothing touches at
+#    opsz 40 / -0.02em, and the colon/semicolon dots back on the overshoot.
+#
 # ─── Build Instructions ──────────────────────────────────────────────
 #
 #   Requirements: python3, curl
@@ -95,7 +100,7 @@ echo "==> Setting up build environment..."
 mkdir -p "$BUILD_DIR/output"
 python3 -m venv "$BUILD_DIR/venv"
 source "$BUILD_DIR/venv/bin/activate"
-pip install -q fonttools brotli numpy opentype-feature-freezer
+pip install -q fonttools brotli numpy pillow uharfbuzz opentype-feature-freezer
 
 echo "==> Downloading DM Sans..."
 curl -sL -o "$BUILD_DIR/DMSans.ttf" \
@@ -906,6 +911,855 @@ for var_file in ['RSans-Variable.ttf', 'RSans-Italic-Variable.ttf']:
 print("  Proportion retune complete.")
 RETUNE
 
+# ── Step 2c: v3 typographic completeness ─────────────────────────────
+
+echo "==> Completing the character set and features (v3)..."
+python3 - "$BUILD_DIR" << 'COMPLETE'
+import os
+import sys
+# ── v3: typographic completeness ────────────────────────────────────
+# Adds what R Sans needs to set text without a second face, on the
+# variable fonts. New glyphs are defined at every master of the grid and
+# solved into gvar with the font's own VariationModel; HVAR is rebuilt
+# from the phantom points afterwards.
+#   - display kerning: no pair touches at opsz 40 / -0.02em
+#   - colon/semicolon dots back on the o overshoot (v2 left them low)
+#   - thin, hair, narrow no-break, punctuation and figure spaces; ‐ ‑ ′ ″
+#   - superiors/inferiors/numerators/denominators 0-9 (sups subs sinf
+#     numr dnom), fitted to DM Sans's own designed superior 4
+#   - tabular (tnum), oldstyle (onum), tabular oldstyle, lnum, pnum
+#   - small caps (smcp, c2sc) with accents and the capitals' kerning
+# Smaller glyphs are "weight-compensated": drawn from a heavier location
+# on the weight axis so that, once scaled, their stems match the target.
+import array
+import math
+import numpy as np
+from fontTools.ttLib import TTFont
+from fontTools.ttLib.tables import otTables as ot
+from fontTools.ttLib.tables._g_l_y_f import Glyph, GlyphComponent, GlyphCoordinates
+from fontTools.ttLib.tables import ttProgram
+from fontTools.ttLib.tables.TupleVariation import TupleVariation
+from fontTools.varLib.models import VariationModel, supportScalar
+from fontTools.varLib.varStore import OnlineVarStoreBuilder
+from fontTools.varLib import builder as vbuilder
+
+
+class VF:
+    def __init__(self, path):
+        self.font = TTFont(path)
+        f = self.font
+        self.axes = [a.axisTag for a in f['fvar'].axes]
+        peaks = set()
+        for tvs in f['gvar'].variations.values():
+            for tv in tvs:
+                peaks.add(tuple(sorted((a, v[1]) for a, v in tv.axes.items())))
+        self.locs = [{}] + [dict(p) for p in sorted(peaks)]
+        self.model = VariationModel(self.locs, axisOrder=self.axes)
+        self.slant = math.tan(math.radians(-f['post'].italicAngle))
+        self._cache = {}
+
+    # ── reading ────────────────────────────────────────────────────
+    def masters(self, name):
+        if name in self._cache:
+            return self._cache[name]
+        f = self.font
+        glyf, hm = f['glyf'], f['hmtx'].metrics
+        base, _ = glyf._getCoordinatesAndControls(name, hm)
+        base = np.array(base, dtype=float)
+        g = glyf[name]
+        deltas = []
+        for tv in f['gvar'].variations.get(name, []):
+            tv = TupleVariation(tv.axes, list(tv.coordinates))
+            if None in tv.coordinates:
+                if g.isComposite():
+                    tv.coordinates = [c if c is not None else (0, 0) for c in tv.coordinates]
+                else:
+                    orig, _ = glyf._getCoordinatesAndControls(name, hm)
+                    tv.calcInferredDeltas(orig, list(g.endPtsOfContours))
+            deltas.append((tv.axes, np.array(tv.coordinates, dtype=float)))
+        out = []
+        for loc in self.locs:
+            v = base.copy()
+            for axes, d in deltas:
+                s = supportScalar(loc, axes)
+                if s:
+                    v += s * d
+            out.append(v)
+        self._cache[name] = out
+        return out
+
+    def at(self, name, loc):
+        """Coordinates (incl. phantoms) at any normalized location."""
+        return self.model.interpolateFromMasters(loc, self.masters(name))
+
+    def outline(self, name):
+        g = self.font['glyf'][name]
+        return list(g.endPtsOfContours), list(g.flags)
+
+    # ── writing ────────────────────────────────────────────────────
+    def _register(self, name, glyph, adv=500):
+        f = self.font
+        order = f.getGlyphOrder()
+        if name not in order:
+            f.setGlyphOrder(order + [name])
+        f['glyf'].glyphs[name] = glyph
+        f['hmtx'].metrics[name] = (adv, 0)
+        gdef = f['GDEF'].table
+        if gdef.GlyphClassDef is not None:
+            gdef.GlyphClassDef.classDefs[name] = 1
+        self._cache.pop(name, None)
+
+    def set_masters(self, name, masters, tolerance=0.5):
+        """Solve per-master coordinates (incl. 4 phantoms) into default + gvar."""
+        f = self.font
+        glyf, hm = f['glyf'], f['hmtx'].metrics
+        masters = [np.round(np.asarray(m, dtype=float)) for m in masters]
+        deltas = self.model.getDeltas(masters)
+        glyf._setCoordinates(name, [tuple(map(int, p)) for p in deltas[0]], hm)
+        g = glyf[name]
+        coords, _ = glyf._getCoordinatesAndControls(name, hm)
+        tvs = []
+        for support, d in zip(self.model.supports[1:], deltas[1:]):
+            d = np.round(d).astype(int)
+            if not d.any():
+                continue
+            tv = TupleVariation(dict(support), [tuple(map(int, p)) for p in d])
+            if not g.isComposite() and g.numberOfContours > 0:
+                tv.optimize(coords, list(g.endPtsOfContours), tolerance=tolerance)
+            tvs.append(tv)
+        if tvs:
+            f['gvar'].variations[name] = tvs
+        else:
+            f['gvar'].variations.pop(name, None)
+        self._cache.pop(name, None)
+
+    def add_simple(self, name, masters, ends, flags):
+        g = Glyph()
+        g.numberOfContours = len(ends)
+        g.coordinates = GlyphCoordinates([(0, 0)] * (len(masters[0]) - 4))
+        g.endPtsOfContours = list(ends)
+        g.flags = array.array('B', [fl & 1 for fl in flags])
+        g.program = ttProgram.Program()
+        g.program.fromBytecode(b'')
+        self._register(name, g)
+        self.set_masters(name, masters)
+
+    def add_empty(self, name, advances):
+        """A blank glyph (space) whose advance varies per master."""
+        g = Glyph()
+        g.numberOfContours = 0
+        self._register(name, g)
+        ms = [np.array([[0, 0], [a, 0], [0, 0], [0, 0]], dtype=float) for a in advances]
+        self.set_masters(name, ms)
+
+    def add_composite(self, name, components, advances):
+        """components: [(glyphName, [(dx, dy) per master])]; advances per master."""
+        g = Glyph()
+        g.numberOfContours = -1
+        g.components = []
+        for cname, _ in components:
+            c = GlyphComponent()
+            c.glyphName = cname
+            c.x = c.y = 0
+            c.flags = 0x4  # ROUND_XY_TO_GRID
+            g.components.append(c)
+        self._register(name, g)
+        ms = []
+        for mi in range(len(self.locs)):
+            pts = [list(off[mi]) for _, off in components]
+            ms.append(np.array(pts + [[0, 0], [advances[mi], 0], [0, 0], [0, 0]], dtype=float))
+        self.set_masters(name, ms)
+
+    def map_cmap(self, cp, name):
+        for t in self.font['cmap'].tables:
+            if t.isUnicode() or t.platformID == 3:
+                if cp > 0xFFFF and t.format in (4, 0, 6):
+                    continue
+                t.cmap[cp] = name
+
+    # ── GSUB ───────────────────────────────────────────────────────
+    def add_single_subst(self, tag, mapping):
+        """Append a type-1 lookup to feature `tag` (created if missing)."""
+        if not mapping:
+            return
+        gsub = self.font['GSUB'].table
+        st = ot.SingleSubst()
+        st.mapping = dict(mapping)
+        lk = ot.Lookup()
+        lk.LookupType = 1
+        lk.LookupFlag = 0
+        lk.SubTable = [st]
+        lk.SubTableCount = 1
+        gsub.LookupList.Lookup.append(lk)
+        gsub.LookupList.LookupCount = len(gsub.LookupList.Lookup)
+        li = len(gsub.LookupList.Lookup) - 1
+        self._attach(gsub, tag, li)
+
+    def _attach(self, table, tag, lookup_index):
+        recs = [fr for fr in table.FeatureList.FeatureRecord if fr.FeatureTag == tag]
+        if recs:
+            for fr in recs:
+                fr.Feature.LookupListIndex.append(lookup_index)
+                fr.Feature.LookupCount = len(fr.Feature.LookupListIndex)
+            return
+        fr = ot.FeatureRecord()
+        fr.FeatureTag = tag
+        fr.Feature = ot.Feature()
+        fr.Feature.FeatureParams = None
+        fr.Feature.LookupListIndex = [lookup_index]
+        fr.Feature.LookupCount = 1
+        table.FeatureList.FeatureRecord.append(fr)
+        new_index = len(table.FeatureList.FeatureRecord) - 1
+        for sr in table.ScriptList.ScriptRecord:
+            langs = [sr.Script.DefaultLangSys] + [l.LangSys for l in sr.Script.LangSysRecord]
+            for ls in langs:
+                if ls is not None:
+                    ls.FeatureIndex.append(new_index)
+                    ls.FeatureCount = len(ls.FeatureIndex)
+        self._sort_features(table)
+
+    def _sort_features(self, table):
+        recs = table.FeatureList.FeatureRecord
+        order = sorted(range(len(recs)), key=lambda i: (recs[i].FeatureTag, i))
+        remap = {old: new for new, old in enumerate(order)}
+        table.FeatureList.FeatureRecord = [recs[i] for i in order]
+        table.FeatureList.FeatureCount = len(recs)
+        for sr in table.ScriptList.ScriptRecord:
+            langs = [sr.Script.DefaultLangSys] + [l.LangSys for l in sr.Script.LangSysRecord]
+            for ls in langs:
+                if ls is None:
+                    continue
+                ls.FeatureIndex = sorted(remap[i] for i in ls.FeatureIndex)
+                if ls.ReqFeatureIndex != 0xFFFF:
+                    ls.ReqFeatureIndex = remap[ls.ReqFeatureIndex]
+
+    # ── HVAR ───────────────────────────────────────────────────────
+    def rebuild_hvar(self):
+        f = self.font
+        order = f.getGlyphOrder()
+        sb = OnlineVarStoreBuilder(self.axes)
+        sb.setSupports(self.model.supports)
+        mapping = {}
+        for name in order:
+            ms = self.masters(name)
+            adv = [m[-3][0] - m[-4][0] for m in ms]
+            deltas = self.model.getDeltas(adv)
+            mapping[name] = sb.storeDeltas([round(d) for d in deltas])
+        store = sb.finish()
+        remap = store.optimize()
+        hvar = ot.HVAR()
+        hvar.Version = 0x00010000
+        hvar.VarStore = store
+        hvar.AdvWidthMap = vbuilder.buildVarIdxMap([remap[mapping[g]] for g in order], order)
+        hvar.LsbMap = hvar.RsbMap = None
+        f['HVAR'].table = hvar
+
+    # ── weight-compensated scaling ─────────────────────────────────
+    def stem(self, coords, glyph):
+        """Vertical stem width of a plain rectangle glyph (l, I, one stem) from coords."""
+        pts = np.array(coords[:-4], dtype=float)
+        if self.slant:
+            pts[:, 0] -= pts[:, 1] * self.slant
+        if glyph in ('l', 'I', 'dotlessi'):
+            return pts[:, 0].max() - pts[:, 0].min()
+        raise ValueError(glyph)
+
+    def compensated_location(self, mi, ref, target_stem, sx):
+        """Normalized location on the weight axis (opsz held at master mi) where
+        stem(ref) * sx == target_stem. Clamped to the axis."""
+        base = dict(self.locs[mi])
+        def stem_at(w):
+            loc = dict(base)
+            loc['wght'] = w
+            return self.stem(self.at(ref, loc), ref) * sx
+        lo, hi = -1.0, 1.0
+        if stem_at(hi) <= target_stem:
+            return dict(base, wght=hi)
+        if stem_at(lo) >= target_stem:
+            return dict(base, wght=lo)
+        for _ in range(40):
+            mid = (lo + hi) / 2
+            if stem_at(mid) < target_stem:
+                lo = mid
+            else:
+                hi = mid
+        return dict(base, wght=(lo + hi) / 2)
+
+    def transform(self, coords, sx, sy, dx=0.0, dy=0.0):
+        """Scale outline about the origin (de-slanted for italics), then move."""
+        c = np.array(coords, dtype=float)
+        pts = c[:-4].copy()
+        if self.slant:
+            pts[:, 0] -= pts[:, 1] * self.slant
+        pts[:, 0] = pts[:, 0] * sx + dx
+        pts[:, 1] = pts[:, 1] * sy + dy
+        if self.slant:
+            pts[:, 0] += pts[:, 1] * self.slant
+        c[:-4] = pts
+        return c
+
+
+def ink_bounds(coords):
+    p = coords[:-4]
+    return p[:, 0].min(), p[:, 1].min(), p[:, 0].max(), p[:, 1].max()
+
+
+DIGITS = ['zero', 'one.ss07', 'two', 'three.ss07', 'four.ss07',
+          'five', 'six.ss07', 'seven', 'eight', 'nine.ss07']
+def digit_base(name):
+    return name.split('.')[0]
+
+
+# ── small figures: superiors, inferiors, numerators, denominators ─────
+# Fitted to DM Sans's own designed superior 4 (RMS < 1 unit at the
+# regular masters): half size on both axes, raised 352 units, taken from
+# a heavier location whose stem satisfies  small = 6.3 + 0.70 × full.
+SMALL_SCALE = 0.5
+SUPS_RAISE = 352
+SINF_DROP = -140
+SMALL_PAD = None   # measured from DM's superior 4 at run time
+
+
+def small_stem(full):
+    return 6.3 + 0.697 * full
+
+
+def small_figure_masters(vf, src, dy, pad):
+    out = []
+    for mi in range(len(vf.locs)):
+        target = small_stem(vf.stem(vf.masters('l')[mi], 'l'))
+        loc = vf.compensated_location(mi, 'l', target, SMALL_SCALE)
+        c = vf.at(src, loc)
+        adv = (c[-3][0] - c[-4][0]) * SMALL_SCALE + 2 * pad
+        new = vf.transform(c, SMALL_SCALE, SMALL_SCALE, dx=pad, dy=dy)
+        new[-4] = [0, 0]
+        new[-3] = [adv, 0]
+        new[-2] = [0, 0]
+        new[-1] = [0, 0]
+        out.append(new)
+    return out
+
+
+def measure_small_pad(vf):
+    """Side padding DM added to its superior 4, beyond half the full advance."""
+    m = vf.masters('uni2074')[0]
+    adv_sup = m[-3][0] - m[-4][0]
+    target = small_stem(vf.stem(vf.masters('l')[0], 'l'))
+    loc = vf.compensated_location(0, 'l', target, SMALL_SCALE)
+    full = vf.at('four', loc)
+    return (adv_sup - (full[-3][0] - full[-4][0]) * SMALL_SCALE) / 2
+
+
+def step_small_figures(vf, keep_designed_two=True):
+    pad = measure_small_pad(vf)
+    sups, sinf, dnom = {}, {}, {}
+    for d in DIGITS:
+        base = digit_base(d)
+        ends, flags = vf.outline(d)
+        vf.add_simple(f'{base}.sups', small_figure_masters(vf, d, SUPS_RAISE, pad), ends, flags)
+        vf.add_simple(f'{base}.sinf', small_figure_masters(vf, d, SINF_DROP, pad), ends, flags)
+        sups[d] = f'{base}.sups'
+        sinf[d] = f'{base}.sinf'
+        # denominators: the superior dropped to the baseline
+        adv = [m[-3][0] for m in vf.masters(f'{base}.sups')]
+        vf.add_composite(f'{base}.dnom', [(f'{base}.sups', [(0, -SUPS_RAISE)] * len(vf.locs))], adv)
+        dnom[d] = f'{base}.dnom'
+    if keep_designed_two:
+        sups['two'] = 'uni00B2'
+    numr = dict(sups)
+    # U+00B9 etc. follow R Sans's frozen ss07 figures, not DM's defaults
+    cps = {0x2070: 'zero', 0x00B9: 'one', 0x00B2: 'two', 0x00B3: 'three', 0x2074: 'four',
+           0x2075: 'five', 0x2076: 'six', 0x2077: 'seven', 0x2078: 'eight', 0x2079: 'nine'}
+    for cp, base in cps.items():
+        d = next(x for x in DIGITS if digit_base(x) == base)
+        vf.map_cmap(cp, sups[d])
+        vf.map_cmap(0x2080 + DIGITS.index(d), sinf[d])
+    vf.add_single_subst('sups', sups)
+    vf.add_single_subst('numr', numr)
+    vf.add_single_subst('dnom', dnom)
+    vf.add_single_subst('sinf', sinf)
+    vf.add_single_subst('subs', sinf)
+    return pad
+
+
+# ── tabular and oldstyle figures ───────────────────────────────────────
+OSF_SMALL = ('zero', 'one.ss07', 'two')                    # x-height figures
+OSF_DESC = ('three.ss07', 'four.ss07', 'five', 'seven', 'nine.ss07')
+OSF_ASC = ('six.ss07', 'eight')
+OSF_TALL_SCALE = 0.92      # ascending/descending figures, relative to lining
+TAB_SB_MIN = 40            # narrowest sidebearing a tabular figure may have
+
+
+def scaled_figure(vf, src, mi, sx, sy, target_stem, dy=0.0):
+    """One master of `src` scaled by (sx, sy), stems held at target_stem."""
+    loc = vf.compensated_location(mi, 'l', target_stem, sx)
+    c = vf.at(src, loc)
+    ref = vf.masters(src)[mi]
+    x0, _, x1, _ = ink_bounds(ref)
+    lsb, rsb = x0 - ref[-4][0], (ref[-3][0] - ref[-4][0]) - x1
+    new = vf.transform(c, sx, sy, dy=dy)
+    nx0, _, nx1, _ = ink_bounds(new)
+    new[:-4, 0] += lsb - nx0
+    new[-4] = [0, 0]
+    new[-3] = [lsb + (nx1 - nx0) + rsb, 0]
+    new[-2] = [0, 0]
+    new[-1] = [0, 0]
+    return new
+
+
+def step_figures(vf):
+    n = len(vf.locs)
+    stems = [vf.stem(vf.masters('l')[mi], 'l') for mi in range(n)]
+    xh = [vf.masters('x')[mi][:-4, 1].max() for mi in range(n)]
+    adv = {d: [m[-3][0] - m[-4][0] for m in vf.masters(d)] for d in DIGITS}
+    # Tabular width: the widest of 2-9 at each master; 0 is condensed to fit.
+    W = [max(adv[d][mi] for d in DIGITS if d not in ('zero', 'one.ss07')) for mi in range(n)]
+
+    def tab_composite(name, src_name, src_adv):
+        offs = [((W[mi] - src_adv[mi]) / 2, 0) for mi in range(n)]
+        vf.add_composite(name, [(src_name, offs)], W)
+
+    tnum, onum, lnum, pnum = {}, {}, {}, {}
+    for d in DIGITS:
+        base = digit_base(d)
+        if d == 'zero':
+            ms = []
+            for mi in range(n):
+                ink = ink_bounds(vf.masters(d)[mi])
+                sx = min(1.0, (W[mi] - 2 * TAB_SB_MIN) / (ink[2] - ink[0]))
+                m = scaled_figure(vf, d, mi, sx, 1.0, stems[mi])
+                nx0, _, nx1, _ = ink_bounds(m)
+                m[:-4, 0] += (W[mi] - (nx1 - nx0)) / 2 - nx0
+                m[-3] = [W[mi], 0]
+                ms.append(m)
+            ends, flags = vf.outline(d)
+            vf.add_simple('zero.tf', ms, ends, flags)
+        else:
+            tab_composite(f'{base}.tf', d, adv[d])
+        tnum[d] = f'{base}.tf'
+
+    for d in DIGITS:
+        base = digit_base(d)
+        ends, flags = vf.outline(d)
+        ms = []
+        for mi in range(n):
+            full_h = 700.0
+            if d in OSF_SMALL:
+                s = xh[mi] / full_h
+                m = scaled_figure(vf, d, mi, s, s, stems[mi])
+            else:
+                s = OSF_TALL_SCALE
+                h = full_h * s
+                drop = -(h - xh[mi]) if d in OSF_DESC else 0.0
+                m = scaled_figure(vf, d, mi, s, s, stems[mi], dy=drop)
+            ms.append(m)
+        vf.add_simple(f'{base}.osf', ms, ends, flags)
+        osf_adv = [m[-3][0] for m in ms]
+        tab_composite(f'{base}.tosf', f'{base}.osf', osf_adv)
+        onum[d] = f'{base}.osf'
+        onum[f'{base}.tf'] = f'{base}.tosf'
+        lnum[f'{base}.osf'] = d
+        lnum[f'{base}.tosf'] = f'{base}.tf'
+        pnum[f'{base}.tf'] = d
+        pnum[f'{base}.tosf'] = f'{base}.osf'
+
+    # Lookup order: tnum before onum, so tnum+onum gives tabular oldstyle.
+    vf.add_single_subst('tnum', tnum)
+    vf.add_single_subst('onum', onum)
+    vf.add_single_subst('lnum', lnum)
+    vf.add_single_subst('pnum', pnum)
+    vf.add_empty('figurespace', W)
+    vf.map_cmap(0x2007, 'figurespace')
+    return W
+
+
+# ── small caps ─────────────────────────────────────────────────────────
+SC_HEIGHT = 1.04       # small-cap height relative to the x-height
+SC_WIDEN = 1.05        # horizontal scale relative to vertical
+SC_SB_KEEP = 0.5       # sidebearings shrink only halfway towards the outline scale
+
+
+def user_location(vf, loc):
+    """Normalized (post-avar) location -> user coordinates for HarfBuzz."""
+    from fontTools.varLib.models import piecewiseLinearMap
+    f = vf.font
+    avar = f['avar'].segments if 'avar' in f else {}
+    out = {}
+    for a in f['fvar'].axes:
+        v = loc.get(a.axisTag, 0.0)
+        seg = avar.get(a.axisTag)
+        if seg:
+            v = piecewiseLinearMap(v, {b: a_ for a_, b in seg.items()})
+        out[a.axisTag] = a.defaultValue + v * ((a.maxValue if v > 0 else a.defaultValue) - (a.defaultValue if v > 0 else a.minValue))
+    return out
+
+
+def step_small_caps(vf, path_for_hb):
+    import uharfbuzz as hb
+    f = vf.font
+    n = len(vf.locs)
+    cmap = f.getBestCmap()
+    glyf = f['glyf']
+    stems = [vf.stem(vf.masters('l')[mi], 'l') for mi in range(n)]
+    xh = [vf.masters('x')[mi][:-4, 1].max() for mi in range(n)]
+    cap_h = [vf.masters('H')[mi][:-4, 1].max() for mi in range(n)]
+    import unicodedata
+    caps = {chr(c): cmap[c] for c in range(ord('A'), ord('Z') + 1)}
+    # drawn (non-composite) capitals beyond A-Z with a lowercase partner: Æ Ø Ł Đ Þ Ŋ Œ ...
+    for cp, gname in sorted(cmap.items()):
+        ch = chr(cp)
+        if (unicodedata.category(ch) == 'Lu' and ch not in caps and len(ch.lower()) == 1
+                and ord(ch.lower()) in cmap and not glyf[gname].isComposite()):
+            caps[ch] = gname
+    sc_name = {L: f'{cmap[ord(L.lower())]}.sc' for L in caps}
+    sy = [xh[mi] * SC_HEIGHT / cap_h[mi] for mi in range(n)]
+    sx = [s * SC_WIDEN for s in sy]
+
+    # base letters
+    for L, src in caps.items():
+        ms = []
+        for mi in range(n):
+            loc = vf.compensated_location(mi, 'l', stems[mi], sx[mi])
+            c = vf.at(src, loc)
+            ref = vf.masters(src)[mi]
+            x0, _, x1, _ = ink_bounds(ref)
+            lsb, rsb = x0 - ref[-4][0], (ref[-3][0] - ref[-4][0]) - x1
+            keep = sx[mi] + (1 - sx[mi]) * SC_SB_KEEP
+            new = vf.transform(c, sx[mi], sy[mi])
+            nx0, _, nx1, _ = ink_bounds(new)
+            new[:-4, 0] += lsb * keep - nx0
+            new[-4] = [0, 0]
+            new[-3] = [lsb * keep + (nx1 - nx0) + rsb * keep, 0]
+            new[-2] = [0, 0]
+            new[-1] = [0, 0]
+            ms.append(new)
+        ends, flags = vf.outline(src)
+        vf.add_simple(sc_name[L], ms, ends, flags)
+
+    # accented: capital composite structure + the lowercase mark
+    rev = {}
+    for cp, g in cmap.items():
+        rev.setdefault(g, cp)
+    rise = [vf.masters('eacute')[mi][1][1] for mi in range(n)]   # lowercase top-mark offset
+    smcp, c2sc = {}, {}
+    for L in caps:
+        smcp[cmap[ord(L.lower())]] = sc_name[L]
+        c2sc[caps[L]] = sc_name[L]
+    smcp['dotlessi'] = sc_name['I']
+    built = 0
+    for cap_g in list(f.getGlyphOrder()):
+        g = glyf[cap_g]
+        if not g.isComposite() or cap_g not in rev:
+            continue
+        ch = chr(rev[cap_g])
+        if not ch.isupper() or len(ch.lower()) != 1 or ch.lower() == ch or ord(ch.lower()) not in cmap:
+            continue
+        base = g.components[0].glyphName
+        L = next((k for k, v in caps.items() if v == base), None)
+        if L is None or len(g.components) < 2:
+            continue
+        name = f'{cmap[ord(ch.lower())]}.sc'
+        comps = [(sc_name[L], [(0, 0)] * n)]
+        cap_ms = vf.masters(cap_g)
+        base_ms = vf.masters(base)
+        sc_ms = vf.masters(sc_name[L])
+        ok = True
+        for ci, comp in enumerate(g.components[1:], start=1):
+            mark = comp.glyphName.replace('.case', '')
+            if mark not in glyf or mark == comp.glyphName and mark.endswith('.alt'):
+                ok = False
+                break
+            if mark == 'uni030C.alt':
+                mark = 'uni030C'
+            mark_ms = vf.masters(mark)
+            case_ms = vf.masters(comp.glyphName)
+            offs = []
+            for mi in range(n):
+                bx0, _, bx1, _ = ink_bounds(base_ms[mi])
+                cx = (ink_bounds(case_ms[mi])[0] + ink_bounds(case_ms[mi])[2]) / 2 + cap_ms[mi][ci][0]
+                r = (cx - bx0) / (bx1 - bx0)
+                sx0, _, sx1, sc_top = ink_bounds(sc_ms[mi])
+                mx = (ink_bounds(mark_ms[mi])[0] + ink_bounds(mark_ms[mi])[2]) / 2
+                above = ink_bounds(case_ms[mi])[1] > 0
+                oy = rise[mi] + (sy[mi] * cap_h[mi] - xh[mi]) if above else cap_ms[mi][ci][1]
+                offs.append((sx0 + r * (sx1 - sx0) - mx, oy))
+            comps.append((mark, offs))
+        if not ok:
+            continue
+        adv = [m[-3][0] for m in sc_ms]
+        vf.add_composite(name, comps, adv)
+        smcp[cmap[ord(ch.lower())]] = name
+        c2sc[cap_g] = name
+        built += 1
+    vf.add_single_subst('smcp', smcp)
+    vf.add_single_subst('c2sc', c2sc)
+
+    # kerning: the capitals' kerning, scaled, per master
+    face = hb.Face(hb.Blob.from_file_path(path_for_hb))
+    font = hb.Font(face)
+    letters = [L for L in caps if 'A' <= L <= 'Z']
+    kern = {}
+    for mi, loc in enumerate(vf.locs):
+        font.set_variations(user_location(vf, loc))
+        for a in letters:
+            buf = hb.Buffer(); buf.add_str(a); buf.guess_segment_properties(); hb.shape(font, buf)
+            alone = buf.glyph_positions[0].x_advance
+            for b in letters:
+                buf = hb.Buffer(); buf.add_str(a + b); buf.guess_segment_properties(); hb.shape(font, buf, {'kern': True})
+                k = buf.glyph_positions[0].x_advance - alone
+                if k:
+                    kern.setdefault((a, b), [0] * n)[mi] = k * sx[mi]
+    members = {L: [v for k, v in c2sc.items() if k == caps[L] or glyf[k].isComposite() and glyf[k].components[0].glyphName == caps[L]] for L in letters}
+    add_class_kerning(vf, members, kern)
+    return built, len(kern)
+
+
+def add_class_kerning(vf, members, kern):
+    """PairPos format 2 over glyph classes (key -> members), values per master,
+    variations stored as new GDEF VarStore rows."""
+    from fontTools.ttLib.tables import otTables as ot
+    from fontTools.varLib.builder import buildVarData, buildVarRegion
+    f = vf.font
+    gdef = f['GDEF'].table
+    store = gdef.VarStore
+    regions = store.VarRegionList.Region
+    tags = vf.axes
+
+    def region_index(support):
+        want = [support.get(t, (0, 0, 0)) for t in tags]
+        for ri, r in enumerate(regions):
+            got = [(a.StartCoord, a.PeakCoord, a.EndCoord) for a in r.VarRegionAxis]
+            if all(abs(x - y) < 1e-4 for p, q in zip(got, want) for x, y in zip(p, q)):
+                return ri
+        regions.append(buildVarRegion(support, tags))
+        store.VarRegionList.RegionCount = len(regions)
+        return len(regions) - 1
+
+    letters = sorted(members)
+    cls = {L: i + 1 for i, L in enumerate(letters)}
+    rows, values = [], {}
+    for (a, b), vals in kern.items():
+        d = vf.model.getDeltas([float(v) for v in vals])
+        base = int(round(d[0]))
+        row = [int(round(x)) for x in d[1:]]
+        if any(row):
+            rows.append(row)
+            values[(a, b)] = (base, len(rows) - 1)
+        else:
+            values[(a, b)] = (base, None)
+    vd = buildVarData([region_index(s) for s in vf.model.supports[1:]], rows, optimize=False)
+    store.VarData.append(vd)
+    store.VarDataCount = len(store.VarData)
+    outer = len(store.VarData) - 1
+
+    st = ot.PairPos()
+    st.Format = 2
+    st.ValueFormat1 = 0x0004 | 0x0040
+    st.ValueFormat2 = 0
+    cov = ot.Coverage()
+    cov.glyphs = sorted({g for L in letters for g in members[L]}, key=f.getGlyphID)
+    st.Coverage = cov
+    cd1, cd2 = ot.ClassDef(), ot.ClassDef()
+    cd1.classDefs = {g: cls[L] for L in letters for g in members[L]}
+    cd2.classDefs = dict(cd1.classDefs)
+    st.ClassDef1, st.ClassDef2 = cd1, cd2
+    st.Class1Count = st.Class2Count = len(letters) + 1
+    st.Class1Record = []
+    for c1 in range(len(letters) + 1):
+        r1 = ot.Class1Record()
+        r1.Class2Record = []
+        for c2 in range(len(letters) + 1):
+            r2 = ot.Class2Record()
+            v = ot.ValueRecord()
+            v.XAdvance = 0
+            v.XAdvDevice = None
+            if c1 and c2:
+                key = (letters[c1 - 1], letters[c2 - 1])
+                if key in values:
+                    base, row = values[key]
+                    v.XAdvance = base
+                    if row is not None:
+                        dev = ot.Device()
+                        dev.DeltaFormat = 0x8000
+                        dev.StartSize, dev.EndSize = outer, row
+                        v.XAdvDevice = dev
+            r2.Value1 = v
+            r1.Class2Record.append(r2)
+        st.Class1Record.append(r1)
+    lk = ot.Lookup()
+    lk.LookupType = 2
+    lk.LookupFlag = 0
+    lk.SubTable = [st]
+    lk.SubTableCount = 1
+    gpos = f['GPOS'].table
+    gpos.LookupList.Lookup.append(lk)
+    gpos.LookupList.LookupCount = len(gpos.LookupList.Lookup)
+    vf._attach(gpos, 'kern', len(gpos.LookupList.Lookup) - 1)
+
+
+def optimize_gdef_store(vf):
+    f = vf.font
+    gdef, gpos = f['GDEF'].table, f['GPOS'].table
+    used = set()
+    gdef.collect_device_varidxes(used)
+    gpos.collect_device_varidxes(used)
+    store = gdef.VarStore
+    m = store.subset_varidxes(used)
+    gdef.remap_device_varidxes(m)
+    gpos.remap_device_varidxes(m)
+    m = store.optimize()
+    gdef.remap_device_varidxes(m)
+    gpos.remap_device_varidxes(m)
+
+
+# ── punctuation and spaces ─────────────────────────────────────────────
+THIN_SPACE = 0.6       # of the word space at each master
+HAIR_SPACE = 0.2
+
+
+def step_punctuation(vf):
+    n = len(vf.locs)
+    cmap = vf.font.getBestCmap()
+    o_top = [vf.masters('o')[mi][:-4, 1].max() for mi in range(n)]
+    xh = [vf.masters('x')[mi][:-4, 1].max() for mi in range(n)]
+    fixed = []
+    # Colon/semicolon: DM Sans puts the upper dot's top on the o overshoot.
+    # The v2 x-height retune raised o but not these dots.
+    for name in ('colon', 'semicolon', 'semicolon.ss01'):
+        if name not in vf.font['glyf'].glyphs:
+            continue
+        g = vf.font['glyf'][name]
+        ms = [m.copy() for m in vf.masters(name)]
+        if g.isComposite():
+            # move the component that forms the upper dot
+            for ci, comp in enumerate(g.components):
+                for mi in range(n):
+                    cm = vf.masters(comp.glyphName)[mi][:-4, 1]
+                    lo, hi = cm.min() + ms[mi][ci][1], cm.max() + ms[mi][ci][1]
+                    if lo > xh[mi] * 0.5:
+                        ms[mi][ci][1] += o_top[mi] - hi
+                        ms[mi][ci][0] += (o_top[mi] - hi) * vf.slant
+            vf.set_masters(name, ms)
+            fixed.append(name)
+            continue
+        s = 0
+        for e in g.endPtsOfContours:
+            for mi in range(n):
+                ys = ms[mi][s:e + 1, 1]
+                if ys.min() > xh[mi] * 0.5:
+                    dy = o_top[mi] - ys.max()
+                    ms[mi][s:e + 1, 1] += dy
+                    ms[mi][s:e + 1, 0] += dy * vf.slant
+            s = e + 1
+        vf.set_masters(name, ms)
+        fixed.append(name)
+    space = [m[-3][0] - m[-4][0] for m in vf.masters('space')]
+    period = [m[-3][0] - m[-4][0] for m in vf.masters(cmap[ord('.')])]
+    vf.add_empty('uni2009', [s * THIN_SPACE for s in space])      # thin space
+    vf.add_empty('uni202F', [s * THIN_SPACE for s in space])      # narrow no-break space
+    vf.add_empty('uni200A', [s * HAIR_SPACE for s in space])      # hair space
+    vf.add_empty('uni2008', period)                               # punctuation space
+    for cp, g in ((0x2009, 'uni2009'), (0x202F, 'uni202F'), (0x200A, 'uni200A'), (0x2008, 'uni2008'),
+                  (0x2010, cmap[ord('-')]), (0x2011, cmap[ord('-')]),
+                  (0x2032, 'quoteright'), (0x2033, 'quotedblright')):
+        vf.map_cmap(cp, g)
+    return fixed
+
+
+# ── display anti-collision kerning ─────────────────────────────────────
+# R Sans display (opsz 40) is set at -0.02em; DM Sans's display master
+# leaves ~10 units at diagonal apexes and crossbars, so tt, ty, vy, ry...
+# touch. Each master gets exactly the kerning that keeps every pair at
+# least MIN_GAP apart at the tracking that optical size is used with.
+MIN_GAP = 8
+TRACKING_AT_OPSZ = {0.0: 0.0, 0.5: -0.012, 1.0: -0.02}   # normalized opsz -> em
+DISPLAY_CHARS = ("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+                 ".,:;-’”)(!?/")
+
+
+def _profiles(ttf_path, chars):
+    from PIL import ImageFont
+    pil = ImageFont.truetype(ttf_path, 1000)
+    prof = {}
+    for ch in chars:
+        mask, (ox, oy) = pil.getmask2(ch, mode='L')
+        a = np.array(mask).reshape(mask.size[1], mask.size[0]) >= 128
+        L = np.full(1600, np.inf)
+        R = np.full(1600, -np.inf)
+        for r in range(a.shape[0]):
+            xs = np.nonzero(a[r])[0]
+            if len(xs):
+                L[r + oy + 300] = ox + xs[0]
+                R[r + oy + 300] = ox + xs[-1] + 1
+        prof[ch] = (L, R)
+    return prof
+
+
+def step_display_kerning(vf, src_path, tmpdir):
+    import os
+    import uharfbuzz as hb
+    from fontTools.varLib.instancer import instantiateVariableFont
+    n = len(vf.locs)
+    cmap = vf.font.getBestCmap()
+    chars = [c for c in DISPLAY_CHARS if ord(c) in cmap]
+    need = {}
+    for mi, loc in enumerate(vf.locs):
+        track = TRACKING_AT_OPSZ.get(round(loc.get('opsz', 0.0), 3))
+        if not track:
+            continue
+        user = user_location(vf, loc)
+        inst = instantiateVariableFont(TTFont(src_path), user)
+        p = os.path.join(tmpdir, f'_dk_{mi}.ttf')
+        inst.save(p)
+        prof = _profiles(p, chars)
+        font = hb.Font(hb.Face(hb.Blob.from_file_path(p)))
+        for a in chars:
+            R1 = prof[a][1]
+            for b in chars:
+                buf = hb.Buffer(); buf.add_str(a + b); buf.guess_segment_properties()
+                hb.shape(font, buf, {'kern': True, 'liga': False})
+                off = buf.glyph_positions[0].x_advance + track * 1000
+                L2 = prof[b][0] + off
+                gap = min(np.min(L2 - R1), np.min(L2[1:] - R1[:-1]), np.min(L2[:-1] - R1[1:]))
+                if np.isfinite(gap) and gap < MIN_GAP:
+                    need.setdefault((cmap[ord(a)], cmap[ord(b)]), [0.0] * n)[mi] = MIN_GAP - gap
+        os.remove(p)
+    if not need:
+        return 0
+    glyf = vf.font['glyf']
+    bases = sorted({g for pair in need for g in pair}, key=vf.font.getGlyphID)
+    members = {b: [b] for b in bases}
+    for g in vf.font.getGlyphOrder():
+        gl = glyf[g]
+        if gl.isComposite() and gl.components[0].glyphName in members and g not in members:
+            members[gl.components[0].glyphName].append(g)
+    add_class_kerning(vf, members, need)
+    return len(need)
+
+
+# ── run ────────────────────────────────────────────────────────────────
+BUILD = sys.argv[1]
+for var_file in ['RSans-Variable.ttf', 'RSans-Italic-Variable.ttf']:
+    path = os.path.join(BUILD, 'output', var_file)
+    vf = VF(path)
+    print(f"  {var_file}:")
+    n_dk = step_display_kerning(vf, path, BUILD)      # measures the font on disk
+    fixed = step_punctuation(vf)
+    step_small_figures(vf, keep_designed_two=False)
+    W = step_figures(vf)
+    n_acc, n_sck = step_small_caps(vf, path)
+    optimize_gdef_store(vf)
+    vf.rebuild_hvar()
+    vf.font.save(path)
+    print(f"    display kerning: {n_dk} pairs kept >= {MIN_GAP} units apart")
+    print(f"    punctuation: {', '.join(fixed)} dots on the o overshoot; thin/hair/narrow/punctuation spaces")
+    print(f"    figures: sups/sinf/numr/dnom 0-9, tnum (width {min(W):.0f}-{max(W):.0f}), onum, tnum+onum")
+    print(f"    small caps: {sum(1 for g in vf.font.getGlyphOrder() if g.endswith('.sc'))} glyphs "
+          f"({n_acc} accented), {n_sck} kerning pairs")
+
+print("  Typographic completeness done.")
+COMPLETE
+
 # ── Step 3: Tune metrics ─────────────────────────────────────────────
 
 echo "==> Tuning metrics..."
@@ -1093,13 +1947,13 @@ def disambiguate_l(font):
     new_xmax = max(orig_xmax, br_x + tail_len)
     hmtx['l'] = (int(round(new_xmax + rsb)), orig_xmin)
 
-def disambiguate_zero(font):
+def disambiguate_zero(font, name='zero'):
     """Add a center dot to zero for 0/O distinction.
 
     Adds a small circular contour inside the counter.
     """
     glyf = font['glyf']
-    g = glyf['zero']
+    g = glyf[name]
     if g.numberOfContours <= 0:
         return
 
@@ -1244,6 +2098,7 @@ for var_file, is_italic in [('RSans-Variable.ttf', False),
         disambiguate_I(instance)
         disambiguate_l(instance)
         disambiguate_zero(instance)
+        disambiguate_zero(instance, 'zero.tf')     # v3 tabular zero
 
         # Fix metadata
         fix_metadata(instance, wname, wval, is_italic)
@@ -1306,6 +2161,7 @@ echo "Design choices:"
 echo "  Base:         DM Sans (by Colophon Foundry)"
 echo "  Features:     ${FEATURES} (frozen into default glyphs)"
 echo "  Surgery:      Terminal softening on 12 glyphs (c/e/s apertures opened)"
+echo "  Complete (v3): tnum onum smcp c2sc sups subs numr dnom, spaces, display kerning"
 echo "  Retune (v2):  x-height x$(python3 -c "print(1 + $XHEIGHT_K)"), round sidebearings -${ROUND_SB_TIGHTEN}"
 echo "  Disambig:     Serifed I, tailed l, dotted zero (static instances)"
 echo "  Line height:  ~1.30x (DM Sans native, body text optimized)"
